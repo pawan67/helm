@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-pullups}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-pullups}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      # Exposed so the ESP32 (outside Docker) can reach the broker.
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/passwd:/mosquitto/config/passwd:ro
+      - mqtt_data:/mosquitto/data
+
+  web:
+    build:
+      context: ./web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-pullups}
+      MQTT_URL: mqtt://mqtt:1883
+      MQTT_USER: ${MQTT_SERVER_USER:-server}
+      MQTT_PASS: ${MQTT_SERVER_PASS}
+      APP_PASSWORD: ${APP_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET}
+      DEVICE_ID: ${DEVICE_ID:-bar-01}
+      DEVICE_KEY: ${DEVICE_KEY}
+      APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+    ports:
+      # Dokploy points your domain at this port.
+      - "3000:3000"
+
+volumes:
+  db_data:
+  mqtt_data:

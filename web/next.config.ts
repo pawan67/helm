@@ -7,9 +7,10 @@ const nextConfig: NextConfig = {
   experimental: {
     // instrumentation.ts is stable in 15, kept explicit for clarity.
   },
-  // The `mqtt` package pulls in Node built-ins; keep it server-external so it
-  // is not bundled/traced incorrectly by Turbopack/webpack.
-  serverExternalPackages: ["mqtt", "postgres"],
+  // These packages pull in Node built-ins (node:crypto, net, tls). Keep them
+  // server-external so webpack requires them at runtime instead of bundling
+  // (which fails on the `node:` scheme in drizzle's migrator).
+  serverExternalPackages: ["mqtt", "postgres", "drizzle-orm"],
 };
 
 export default nextConfig;
