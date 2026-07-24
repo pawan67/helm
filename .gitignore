@@ -1,0 +1,31 @@
+# deps
+node_modules/
+web/node_modules/
+.pnpm-store/
+
+# next
+web/.next/
+web/out/
+web/next-env.d.ts
+
+# env
+.env
+.env.local
+web/.env
+web/.env.local
+
+# build
+web/dist/
+*.tsbuildinfo
+
+# mosquitto secrets / data
+mosquitto/passwd
+mosquitto/data/
+mosquitto/log/
+
+# firmware local config
+firmware/**/config.h
+
+# misc
+.DS_Store
+*.log
