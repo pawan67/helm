@@ -1,15 +1,16 @@
-import { eq, sql as dsql } from "drizzle-orm";
+import { eq, and, gte, lt, sql as dsql } from "drizzle-orm";
 import { db } from "./index";
 import {
   sessions,
   repEvents,
+  envReadings,
   dailyStats,
   personalRecords,
   settings,
   DEFAULT_THRESHOLDS,
   type DetectionThresholds,
 } from "./schema";
-import { localDate } from "@/lib/time";
+import { localDate, addDays } from "@/lib/time";
 import { env } from "@/lib/env";
 
 /** Shape of the end-of-session summary the device publishes. */
@@ -100,6 +101,21 @@ export async function persistSession(summary: SessionSummary): Promise<{
   return { sessionId, brokenRecords };
 }
 
+/** Insert one ambient reading from the on-bar DHT11. */
+export async function persistEnvReading(reading: {
+  deviceId: string;
+  at: Date;
+  tempC: number | null;
+  humidity: number | null;
+}): Promise<void> {
+  await db.insert(envReadings).values({
+    deviceId: reading.deviceId,
+    at: reading.at,
+    tempC: reading.tempC,
+    humidity: reading.humidity,
+  });
+}
+
 async function dayRepTotal(day: string): Promise<number> {
   const [row] = await db
     .select({ total: dailyStats.totalReps })
@@ -166,6 +182,154 @@ async function updateRecords(input: {
   return broken;
 }
 
+// ---------------------------------------------------------------------------
+//  Manual session CRUD
+//
+//  Sessions are the source of truth; daily_stats and personal_records are
+//  derived. Any manual create/update/delete therefore recomputes the affected
+//  day rollup(s) and rebuilds personal records so nothing drifts out of sync.
+// ---------------------------------------------------------------------------
+
+const sessionType = (reps: number): "pullup_set" | "dead_hang" =>
+  reps > 0 ? "pullup_set" : "dead_hang";
+
+/** Rebuild one local day's rollup from the sessions that ended that day. */
+export async function recomputeDailyStats(day: string): Promise<void> {
+  // Query a wide UTC window (any timezone offset fits within ±1 day), then
+  // filter to the exact local day — avoids fragile local-midnight→UTC math.
+  const rows = await db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        gte(sessions.endedAt, new Date(addDays(day, -1))),
+        lt(sessions.endedAt, new Date(addDays(day, 2))),
+      ),
+    );
+  const members = rows.filter((s) => localDate(new Date(s.endedAt)) === day);
+
+  if (members.length === 0) {
+    await db.delete(dailyStats).where(eq(dailyStats.date, day));
+    return;
+  }
+
+  const totalReps = members.reduce((a, s) => a + s.reps, 0);
+  const totalHangMs = members.reduce((a, s) => a + s.hangMs, 0);
+  const [existing] = await db
+    .select({ goalReps: dailyStats.goalReps })
+    .from(dailyStats)
+    .where(eq(dailyStats.date, day));
+  const goalReps = existing?.goalReps ?? (await currentDailyGoal());
+
+  await db
+    .insert(dailyStats)
+    .values({ date: day, totalReps, totalHangMs, sessionsCount: members.length, goalReps })
+    .onConflictDoUpdate({
+      target: dailyStats.date,
+      set: { totalReps, totalHangMs, sessionsCount: members.length, goalReps },
+    });
+}
+
+/** Rebuild personal_records from scratch off every stored session. */
+export async function recomputePersonalRecords(): Promise<void> {
+  const all = await db.select().from(sessions);
+
+  let bestSet: (typeof all)[number] | null = null;
+  let bestHang: (typeof all)[number] | null = null;
+  const dayTotals = new Map<string, { reps: number; endedAt: Date }>();
+
+  for (const s of all) {
+    if (s.reps > 0 && (!bestSet || s.reps > bestSet.reps)) bestSet = s;
+    if (s.maxHangMs > 0 && (!bestHang || s.maxHangMs > bestHang.maxHangMs)) bestHang = s;
+    const endedAt = new Date(s.endedAt);
+    const day = localDate(endedAt);
+    const cur = dayTotals.get(day);
+    if (!cur) dayTotals.set(day, { reps: s.reps, endedAt });
+    else
+      dayTotals.set(day, {
+        reps: cur.reps + s.reps,
+        endedAt: endedAt > cur.endedAt ? endedAt : cur.endedAt,
+      });
+  }
+
+  let bestDay: { reps: number; endedAt: Date } | null = null;
+  for (const v of dayTotals.values()) {
+    if (v.reps > 0 && (!bestDay || v.reps > bestDay.reps)) bestDay = v;
+  }
+
+  const inserts: (typeof personalRecords.$inferInsert)[] = [];
+  if (bestSet)
+    inserts.push({
+      recordType: "most_reps_set",
+      value: bestSet.reps,
+      sessionId: bestSet.id,
+      achievedAt: new Date(bestSet.endedAt),
+    });
+  if (bestDay)
+    inserts.push({
+      recordType: "most_reps_day",
+      value: bestDay.reps,
+      sessionId: null,
+      achievedAt: bestDay.endedAt,
+    });
+  if (bestHang)
+    inserts.push({
+      recordType: "longest_hang",
+      value: bestHang.maxHangMs,
+      sessionId: bestHang.id,
+      achievedAt: new Date(bestHang.endedAt),
+    });
+
+  await db.delete(personalRecords);
+  if (inserts.length > 0) await db.insert(personalRecords).values(inserts);
+}
+
+/** Editable fields of a session (device sets these automatically on capture). */
+export type SessionInput = {
+  startedAt: string; // ISO
+  durationMs: number;
+  reps: number;
+  hangMs: number;
+  maxHangMs: number;
+};
+
+/** Edit an existing session; recomputes both the old and new day if it moved. */
+export async function updateSession(id: string, patch: Partial<SessionInput>) {
+  const [existing] = await db.select().from(sessions).where(eq(sessions.id, id));
+  if (!existing) return null;
+
+  const startedAt = patch.startedAt ? new Date(patch.startedAt) : new Date(existing.startedAt);
+  const durationMs = patch.durationMs ?? existing.durationMs;
+  const endedAt = new Date(startedAt.getTime() + durationMs);
+  const reps = patch.reps ?? existing.reps;
+  const hangMs = patch.hangMs ?? existing.hangMs;
+  const maxHangMs = patch.maxHangMs ?? existing.maxHangMs;
+
+  const [row] = await db
+    .update(sessions)
+    .set({ startedAt, endedAt, durationMs, reps, hangMs, maxHangMs, type: sessionType(reps) })
+    .where(eq(sessions.id, id))
+    .returning();
+
+  const oldDay = localDate(new Date(existing.endedAt));
+  const newDay = localDate(endedAt);
+  await recomputeDailyStats(newDay);
+  if (newDay !== oldDay) await recomputeDailyStats(oldDay);
+  await recomputePersonalRecords();
+  return row;
+}
+
+/** Delete a session (rep_events cascade), then refresh rollups/records. */
+export async function deleteSession(id: string): Promise<boolean> {
+  const [existing] = await db.select().from(sessions).where(eq(sessions.id, id));
+  if (!existing) return false;
+
+  await db.delete(sessions).where(eq(sessions.id, id));
+  await recomputeDailyStats(localDate(new Date(existing.endedAt)));
+  await recomputePersonalRecords();
+  return true;
+}
+
 /** Fetch settings, creating the default row on first access. */
 export async function getSettings() {
   const [row] = await db.select().from(settings).where(eq(settings.id, 1));
@@ -186,6 +350,10 @@ export async function updateSettings(patch: {
   weeklyGoalReps?: number;
   dailyGoalHangMs?: number;
   thresholds?: DetectionThresholds;
+  soundEnabled?: boolean;
+  beepOnRep?: boolean;
+  beepOnSessionEnd?: boolean;
+  tempLoggingEnabled?: boolean;
 }) {
   await getSettings(); // ensure row exists
   const [row] = await db

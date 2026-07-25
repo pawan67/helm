@@ -26,6 +26,9 @@ mosquitto/log/
 # firmware local config
 firmware/**/config.h
 
+# local backup of the pre-HELM web app (kept on disk, not tracked)
+web_old/
+
 # misc
 .DS_Store
 *.log

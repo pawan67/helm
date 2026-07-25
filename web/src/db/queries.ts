@@ -1,9 +1,22 @@
 import { desc, gte, eq, sql as dsql } from "drizzle-orm";
 import { db } from "./index";
-import { sessions, dailyStats, personalRecords, repEvents } from "./schema";
+import {
+  sessions,
+  dailyStats,
+  personalRecords,
+  repEvents,
+  envReadings,
+} from "./schema";
 import { getSettings } from "./persist";
 import { computeStreaks, weeklyReps, type DayRecord } from "@/lib/streaks";
 import { localDate, addDays } from "@/lib/time";
+import { env } from "@/lib/env";
+import {
+  bucketFor,
+  normalizeDays,
+  round1,
+  type EnvSeries,
+} from "@/lib/env-series";
 
 export async function getRecentSessions(limit = 20) {
   return db.select().from(sessions).orderBy(desc(sessions.startedAt)).limit(limit);
@@ -33,6 +46,66 @@ export async function getDailyStats(days = 30) {
 
 export async function getRecords() {
   return db.select().from(personalRecords);
+}
+
+/**
+ * Ambient temperature/humidity history for the Environment view. Buckets raw
+ * env_readings by hour (<=7d) or day (>7d) in the app timezone, returning
+ * avg/min/max temperature and avg humidity per bucket plus the latest reading.
+ */
+export async function getEnvSeries(days = 7): Promise<EnvSeries> {
+  const range = normalizeDays(days);
+  const unit = bucketFor(range);
+  const tz = env.timezone;
+  const from = new Date(Date.now() - range * 24 * 60 * 60 * 1000);
+
+  // Truncate in local time, then re-anchor to a UTC instant for stable ISO output.
+  // Group/order by the select ordinal (1) rather than repeating the expression —
+  // drizzle would otherwise emit distinct bind params in SELECT vs GROUP BY and
+  // Postgres wouldn't see them as the same expression.
+  const bucket = dsql<Date>`(date_trunc(${unit}, ${envReadings.at} AT TIME ZONE ${tz}) AT TIME ZONE ${tz})`;
+
+  const rows = await db
+    .select({
+      at: bucket,
+      tempAvg: dsql<number | null>`avg(${envReadings.tempC})::float8`,
+      tempMin: dsql<number | null>`min(${envReadings.tempC})::float8`,
+      tempMax: dsql<number | null>`max(${envReadings.tempC})::float8`,
+      humidityAvg: dsql<number | null>`avg(${envReadings.humidity})::float8`,
+    })
+    .from(envReadings)
+    .where(gte(envReadings.at, from))
+    .groupBy(dsql`1`)
+    .orderBy(dsql`1`);
+
+  const [latest] = await db
+    .select({
+      tempC: envReadings.tempC,
+      humidity: envReadings.humidity,
+      at: envReadings.at,
+    })
+    .from(envReadings)
+    .orderBy(desc(envReadings.at))
+    .limit(1);
+
+  return {
+    unit,
+    days: range,
+    points: rows.map((r) => ({
+      at: new Date(r.at).toISOString(),
+      tempAvg: round1(r.tempAvg),
+      tempMin: round1(r.tempMin),
+      tempMax: round1(r.tempMax),
+      humidityAvg: round1(r.humidityAvg),
+    })),
+    current: latest
+      ? {
+          tempC: round1(latest.tempC),
+          humidity: round1(latest.humidity),
+          at: new Date(latest.at).toISOString(),
+        }
+      : null,
+  };
 }
 
 /** Everything the dashboard needs in one call. */

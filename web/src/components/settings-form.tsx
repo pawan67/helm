@@ -1,8 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { useLive } from "./live-provider";
+import { useId, useState, type ComponentType } from "react";
+import {
+  Box,
+  Button,
+  Card,
+  Circle,
+  Field,
+  Flex,
+  Grid,
+  HStack,
+  Icon,
+  Input,
+  InputGroup,
+  Slider,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
+import {
+  CalendarRange,
+  Check,
+  CircleDot,
+  Cpu,
+  Dumbbell,
+  Radar,
+  Save,
+  SlidersHorizontal,
+  Target,
+  Timer,
+} from "lucide-react";
+import { useLive } from "@/components/live-provider";
+import { toaster } from "@/components/ui/toaster";
 import type { Settings, DetectionThresholds } from "@/db/schema";
+import { Eyebrow, Metric } from "@/components/shared/bits";
 
 type ThresholdKey = keyof DetectionThresholds;
 
@@ -31,9 +61,11 @@ export function SettingsForm({ initial }: { initial: Settings }) {
   const [dailyGoalHangSec, setDailyGoalHangSec] = useState(
     Math.round(initial.dailyGoalHangMs / 1000),
   );
-  const [thresholds, setThresholds] = useState<DetectionThresholds>(initial.thresholds);
+  const [thresholds, setThresholds] = useState<DetectionThresholds>(
+    initial.thresholds,
+  );
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saved, setSaved] = useState(true);
 
   function setT(key: ThresholdKey, value: number) {
     setThresholds((t) => ({ ...t, [key]: value }));
@@ -42,7 +74,6 @@ export function SettingsForm({ initial }: { initial: Settings }) {
 
   async function save() {
     setSaving(true);
-    setSaved(false);
     try {
       const res = await fetch("/api/settings", {
         method: "PUT",
@@ -56,8 +87,12 @@ export function SettingsForm({ initial }: { initial: Settings }) {
       });
       if (res.ok) {
         setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
+        toaster.create({ title: "Saved & pushed to device", type: "success" });
+      } else {
+        toaster.create({ title: "Couldn't save — try again", type: "error" });
       }
+    } catch {
+      toaster.create({ title: "Couldn't reach the server", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -66,113 +101,260 @@ export function SettingsForm({ initial }: { initial: Settings }) {
   const live = connected && state.deviceOnline;
 
   return (
-    <div className="space-y-4">
+    <Stack gap="6" pb="4">
       {/* Live calibration strip */}
-      <div className="panel flex flex-wrap items-center justify-between gap-4 p-5">
-        <div>
-          <div className="eyebrow">Live reading</div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="font-mono text-3xl tnum text-lime">
-              {state.distanceMm != null ? state.distanceMm : "—"}
-            </span>
-            <span className="font-mono text-xs text-fg-faint">mm · {live ? state.state : "offline"}</span>
-          </div>
-        </div>
-        <p className="max-w-xs font-mono text-[0.7rem] text-fg-faint">
-          Hang from the bar and pull to a full rep while watching this number.
-          Set the rep line just above your chin-over-bar reading.
-        </p>
-      </div>
+      <Card.Root bg="bg.panel">
+        <Card.Body>
+          <Flex align="center" justify="space-between" flexWrap="wrap" gapX="8" gapY="5">
+            <HStack gap="4">
+              <Circle
+                size="12"
+                borderWidth="1px"
+                borderColor={live ? "teal.muted" : "border.subtle"}
+                bg="bg.subtle"
+              >
+                <Icon
+                  as={Radar}
+                  boxSize="6"
+                  color={live ? "teal.fg" : "fg.subtle"}
+                />
+              </Circle>
+              <Stack gap="1">
+                <Eyebrow>Live reading</Eyebrow>
+                <HStack align="baseline" gap="2">
+                  <Metric fontSize="4xl" color="teal.fg">
+                    {state.distanceMm != null ? state.distanceMm : "—"}
+                  </Metric>
+                  <Text fontFamily="mono" fontSize="xs" color="fg.subtle">
+                    mm · {live ? state.state : "offline"}
+                  </Text>
+                </HStack>
+              </Stack>
+            </HStack>
+            <Text
+              maxW="xs"
+              fontFamily="mono"
+              fontSize="12px"
+              lineHeight="tall"
+              color="fg.subtle"
+            >
+              Hang from the bar and pull to a full rep while watching this
+              number. Set the rep line just above your chin-over-bar reading.
+            </Text>
+          </Flex>
+        </Card.Body>
+      </Card.Root>
 
       {/* Goals */}
-      <div className="panel p-6">
-        <div className="eyebrow mb-4">Goals</div>
-        <div className="grid gap-5 sm:grid-cols-3">
-          <NumField label="Daily reps" value={dailyGoalReps} min={0} max={10000} onChange={(v) => { setDailyGoalReps(v); setSaved(false); }} />
-          <NumField label="Weekly reps" value={weeklyGoalReps} min={0} max={70000} onChange={(v) => { setWeeklyGoalReps(v); setSaved(false); }} />
-          <NumField label="Daily hang (sec)" value={dailyGoalHangSec} min={0} max={3600} onChange={(v) => { setDailyGoalHangSec(v); setSaved(false); }} />
-        </div>
-      </div>
+      <Card.Root bg="bg.panel">
+        <Card.Header>
+          <HStack gap="2" color="fg.muted">
+            <Icon as={Target} boxSize="3.5" />
+            <Eyebrow>Goals</Eyebrow>
+          </HStack>
+          <Card.Description>
+            Targets that power your rings, weekly meter and streaks.
+          </Card.Description>
+        </Card.Header>
+        <Card.Body>
+          <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap="5">
+            <GoalField
+              icon={Dumbbell}
+              label="Daily reps"
+              unit="reps"
+              description="Reps target each day."
+              value={dailyGoalReps}
+              min={0}
+              max={10000}
+              onChange={(v) => {
+                setDailyGoalReps(v);
+                setSaved(false);
+              }}
+            />
+            <GoalField
+              icon={CalendarRange}
+              label="Weekly reps"
+              unit="reps"
+              description="Reps target across the week."
+              value={weeklyGoalReps}
+              min={0}
+              max={70000}
+              onChange={(v) => {
+                setWeeklyGoalReps(v);
+                setSaved(false);
+              }}
+            />
+            <GoalField
+              icon={Timer}
+              label="Daily hang"
+              unit="sec"
+              description="Seconds of hang time each day."
+              value={dailyGoalHangSec}
+              min={0}
+              max={3600}
+              onChange={(v) => {
+                setDailyGoalHangSec(v);
+                setSaved(false);
+              }}
+            />
+          </Grid>
+        </Card.Body>
+      </Card.Root>
 
       {/* Detection thresholds */}
-      <div className="panel p-6">
-        <div className="mb-1 eyebrow">Detection thresholds</div>
-        <p className="mb-5 max-w-2xl text-sm text-fg-dim">
-          These are pushed to the ESP32 instantly over MQTT — no reflashing.
-          Tune them against the live reading above.
-        </p>
-        <div className="grid gap-6 sm:grid-cols-2">
-          {THRESHOLD_FIELDS.map((f) => (
-            <SliderField
-              key={f.key}
-              label={f.label}
-              hint={f.hint}
-              value={thresholds[f.key]}
-              min={f.min}
-              max={f.max}
-              step={f.step}
-              unit={f.unit}
-              onChange={(v) => setT(f.key, v)}
-            />
-          ))}
-        </div>
-      </div>
+      <Card.Root bg="bg.panel">
+        <Card.Header>
+          <HStack gap="2" color="fg.muted">
+            <Icon as={SlidersHorizontal} boxSize="3.5" />
+            <Eyebrow>Detection thresholds</Eyebrow>
+          </HStack>
+          <Card.Description>
+            Pushed to the ESP32 instantly over MQTT — no reflashing. Tune them
+            against the live reading above.
+          </Card.Description>
+        </Card.Header>
+        <Card.Body>
+          <Grid
+            templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }}
+            columnGap="8"
+            rowGap="6"
+          >
+            {THRESHOLD_FIELDS.map((f) => (
+              <SliderField
+                key={f.key}
+                label={f.label}
+                hint={f.hint}
+                value={thresholds[f.key]}
+                min={f.min}
+                max={f.max}
+                step={f.step}
+                unit={f.unit}
+                onChange={(v) => setT(f.key, v)}
+              />
+            ))}
+          </Grid>
+        </Card.Body>
+      </Card.Root>
 
       {/* Device */}
-      <div className="panel p-6">
-        <div className="eyebrow mb-4">Device</div>
-        <dl className="grid gap-4 font-mono text-sm sm:grid-cols-4">
-          <Info label="ID" value={initial.deviceId} />
-          <Info label="Status" value={live ? "online" : "offline"} accent={live ? "lime" : "danger"} />
-          <Info label="Firmware" value={state.fwVersion ?? "—"} />
-          <Info label="Signal" value={state.rssi != null ? `${state.rssi} dBm` : "—"} />
-        </dl>
-      </div>
+      <Card.Root bg="bg.panel">
+        <Card.Header>
+          <HStack gap="2" color="fg.muted">
+            <Icon as={Cpu} boxSize="3.5" />
+            <Eyebrow>Device</Eyebrow>
+          </HStack>
+          <Card.Description>
+            Read-only telemetry from the sensor on the bar.
+          </Card.Description>
+        </Card.Header>
+        <Card.Body>
+          <Grid
+            templateColumns={{ base: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" }}
+            gap="3"
+          >
+            <Info label="ID" value={initial.deviceId} />
+            <Info label="Status" value={live ? "online" : "offline"} tone={live ? "teal" : "red"} dot />
+            <Info label="Firmware" value={state.fwVersion ?? "—"} />
+            <Info label="Signal" value={state.rssi != null ? `${state.rssi} dBm` : "—"} />
+          </Grid>
+        </Card.Body>
+      </Card.Root>
 
       {/* Save bar */}
-      <div className="sticky bottom-24 z-20 flex items-center justify-end gap-3 lg:bottom-4">
-        {saved && (
-          <span className="animate-rise font-mono text-xs text-lime">
-            ✓ saved & pushed to device
-          </span>
-        )}
-        <button
-          onClick={save}
-          disabled={saving}
-          className="rounded-xl bg-lime px-6 py-3 font-display text-lg tracking-wider text-ink shadow-lg shadow-lime/20 transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+      <Box position="sticky" bottom={{ base: "4", lg: "6" }} zIndex="5">
+        <Flex
+          align="center"
+          justify="space-between"
+          gap="4"
+          rounded="xl"
+          borderWidth="1px"
+          borderColor="border.subtle"
+          bg="bg.panel/90"
+          backdropFilter="blur(8px)"
+          shadow="lg"
+          px="4"
+          py="3"
         >
-          {saving ? "SAVING…" : "SAVE CHANGES"}
-        </button>
-      </div>
-    </div>
+          <HStack gap="2" fontFamily="mono" fontSize="xs" minW="0">
+            {saved ? (
+              <>
+                <Icon as={Check} boxSize="3.5" color="teal.fg" />
+                <Text color="fg.subtle" truncate>
+                  All changes saved
+                </Text>
+              </>
+            ) : (
+              <>
+                <Icon as={CircleDot} boxSize="3.5" color="orange.fg" />
+                <Text color="orange.fg" truncate>
+                  Unsaved changes
+                </Text>
+              </>
+            )}
+          </HStack>
+          <Button
+            colorPalette="teal"
+            size="lg"
+            onClick={save}
+            loading={saving}
+            loadingText="SAVING…"
+          >
+            <Icon as={Save} boxSize="4" />
+            SAVE CHANGES
+          </Button>
+        </Flex>
+      </Box>
+    </Stack>
   );
 }
 
-function NumField({
+function GoalField({
+  icon: Ico,
   label,
   value,
   min,
   max,
+  unit,
+  description,
   onChange,
 }: {
+  icon: ComponentType<{ size?: number | string }>;
   label: string;
   value: number;
   min: number;
   max: number;
+  unit: string;
+  description: string;
   onChange: (v: number) => void;
 }) {
+  const id = useId();
   return (
-    <label className="block">
-      <span className="eyebrow">{label}</span>
-      <input
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="mt-2 w-full rounded-lg border border-line bg-ink-2 px-3 py-2.5 font-mono text-fg outline-none focus:border-lime/60"
-      />
-    </label>
+    <Field.Root>
+      <Field.Label htmlFor={id}>
+        <Icon as={Ico} boxSize="3.5" color="fg.subtle" />
+        <Eyebrow>{label}</Eyebrow>
+      </Field.Label>
+      <InputGroup
+        endElement={
+          <Text fontFamily="mono" fontSize="xs" color="fg.subtle">
+            {unit}
+          </Text>
+        }
+      >
+        <Input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          value={value}
+          min={min}
+          max={max}
+          onChange={(e) => onChange(Number(e.target.value))}
+          fontFamily="mono"
+          fontVariantNumeric="tabular-nums"
+        />
+      </InputGroup>
+      <Field.HelperText>{description}</Field.HelperText>
+    </Field.Root>
   );
 }
 
@@ -196,45 +378,77 @@ function SliderField({
   onChange: (v: number) => void;
 }) {
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-fg">{label}</span>
-        <span className="font-mono text-sm text-lime tnum">
+    <Slider.Root
+      value={[value]}
+      min={min}
+      max={max}
+      step={step}
+      colorPalette="teal"
+      onValueChange={(e) => onChange(e.value[0])}
+    >
+      <HStack justify="space-between" mb="1">
+        <Slider.Label fontSize="sm" fontWeight="medium">
+          {label}
+        </Slider.Label>
+        <Text fontFamily="mono" fontSize="sm" color="teal.fg" fontVariantNumeric="tabular-nums">
           {value}
-          <span className="ml-1 text-fg-faint">{unit}</span>
-        </span>
-      </div>
-      <input
-        type="range"
-        value={value}
-        min={min}
-        max={max}
-        step={step}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="range-lime mt-3 w-full"
-      />
-      <p className="mt-1.5 text-xs text-fg-faint">{hint}</p>
-    </div>
+          <Text as="span" ml="1" color="fg.subtle">
+            {unit}
+          </Text>
+        </Text>
+      </HStack>
+      <Slider.Control>
+        <Slider.Track>
+          <Slider.Range />
+        </Slider.Track>
+        <Slider.Thumbs />
+      </Slider.Control>
+      <Text fontSize="xs" color="fg.subtle" mt="1.5">
+        {hint}
+      </Text>
+    </Slider.Root>
   );
 }
 
 function Info({
   label,
   value,
-  accent,
+  tone,
+  dot = false,
 }: {
   label: string;
   value: string;
-  accent?: "lime" | "danger";
+  tone?: "teal" | "red";
+  dot?: boolean;
 }) {
+  const color = tone === "teal" ? "teal.fg" : tone === "red" ? "red.fg" : "fg";
   return (
-    <div>
-      <dt className="eyebrow !text-[0.55rem]">{label}</dt>
-      <dd
-        className={`mt-1 ${accent === "lime" ? "text-lime" : accent === "danger" ? "text-danger" : "text-fg"}`}
+    <Stack
+      gap="1.5"
+      rounded="lg"
+      borderWidth="1px"
+      borderColor="border.subtle"
+      bg="bg.subtle"
+      px="3.5"
+      py="3"
+    >
+      <Eyebrow fontSize="9px">{label}</Eyebrow>
+      <HStack
+        gap="2"
+        fontFamily="mono"
+        fontSize="sm"
+        color={color}
+        fontVariantNumeric="tabular-nums"
       >
-        {value}
-      </dd>
-    </div>
+        {dot ? (
+          <Circle
+            size="2"
+            bg={tone === "teal" ? "teal.solid" : "red.solid"}
+            flexShrink="0"
+          />
+        ) : null}
+        <Text truncate>{value}</Text>
+      </HStack>
+    </Stack>
   );
 }

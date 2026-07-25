@@ -17,6 +17,14 @@ function clampInt(v: unknown, min: number, max: number, fallback: number): numbe
   return Math.min(max, Math.max(min, n));
 }
 
+/** Coerce loose JSON (true/false, "true", 1/0) to a bool, keeping the current value otherwise. */
+function toBool(v: unknown, fallback: boolean): boolean {
+  if (typeof v === "boolean") return v;
+  if (v === "true" || v === 1) return true;
+  if (v === "false" || v === 0) return false;
+  return fallback;
+}
+
 export async function PUT(req: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -34,6 +42,15 @@ export async function PUT(req: NextRequest) {
     patch.weeklyGoalReps = clampInt(body.weeklyGoalReps, 0, 70000, current.weeklyGoalReps);
   if ("dailyGoalHangMs" in body)
     patch.dailyGoalHangMs = clampInt(body.dailyGoalHangMs, 0, 3_600_000, current.dailyGoalHangMs);
+
+  if ("soundEnabled" in body)
+    patch.soundEnabled = toBool(body.soundEnabled, current.soundEnabled);
+  if ("beepOnRep" in body)
+    patch.beepOnRep = toBool(body.beepOnRep, current.beepOnRep);
+  if ("beepOnSessionEnd" in body)
+    patch.beepOnSessionEnd = toBool(body.beepOnSessionEnd, current.beepOnSessionEnd);
+  if ("tempLoggingEnabled" in body)
+    patch.tempLoggingEnabled = toBool(body.tempLoggingEnabled, current.tempLoggingEnabled);
 
   if (body.thresholds && typeof body.thresholds === "object") {
     const t = body.thresholds as Partial<DetectionThresholds>;

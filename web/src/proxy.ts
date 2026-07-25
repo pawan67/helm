@@ -5,10 +5,13 @@ import { verifyToken, COOKIE_NAME } from "@/lib/session";
  * Gate every page and API route behind the session cookie, except the login
  * page, the auth endpoints, and static assets. Unauthenticated page requests
  * redirect to /login; unauthenticated API requests get a 401.
+ *
+ * Next 16 renamed the `middleware` convention to `proxy` (runs on the Node.js
+ * runtime — jose works here). See node_modules/next/dist/docs upgrade guide.
  */
 const PUBLIC_PATHS = ["/login", "/api/auth/login"];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {

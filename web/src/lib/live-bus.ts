@@ -24,6 +24,8 @@ const initialState: LiveState = {
   sessionStartedAt: null,
   rssi: null,
   fwVersion: null,
+  tempC: null,
+  humidity: null,
   updatedAt: 0,
 };
 

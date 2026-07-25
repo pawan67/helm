@@ -1,34 +1,41 @@
-# IRONHANG Firmware (ESP32 + VL53L0X)
+# HELM Bar-Node Firmware (ESP32)
 
-Arduino sketch that reads the VL53L0X, detects reps + hang time, and streams to
-the server over MQTT. The detection logic mirrors
-`web/src/lib/detection.ts` exactly, so the TypeScript unit tests also validate
-the on-device algorithm.
+Arduino sketch for the HELM **bar node**: it reads the VL53L0X to detect reps and
+hang time, reads a DHT11 for room temperature and humidity, drives a passive buzzer,
+and streams everything to the server over MQTT. The detection logic mirrors
+`web/src/lib/detection.ts` exactly, so the TypeScript unit tests also validate the
+on-device algorithm.
 
 ## Hardware
 
-| VL53L0X | ESP32     |
-|---------|-----------|
-| VIN     | 3V3       |
-| GND     | GND       |
-| SDA     | GPIO21    |
-| SCL     | GPIO22    |
+| Part           | Pin → ESP32 |
+|----------------|-------------|
+| VL53L0X VIN    | 3V3         |
+| VL53L0X GND    | GND         |
+| VL53L0X SDA    | GPIO21      |
+| VL53L0X SCL    | GPIO22      |
+| DHT11 VCC      | 3V3         |
+| DHT11 GND      | GND         |
+| DHT11 DATA     | GPIO25 (10k pull-up to 3V3 if bare) |
+| Buzzer +       | GPIO26 (passive piezo) |
+| Buzzer −       | GND         |
 
-Mount the sensor on the wall **10 cm above the bar**, centered, pointing
-**outward** toward your body. When you hang, your head reads far/low in the
-beam; at the top of a pull-up your head rises close to the sensor.
+Mount the VL53L0X on the wall **10 cm above the bar**, centered, pointing
+**outward** toward your body. When you hang, your head reads far/low in the beam;
+at the top of a pull-up your head rises close to the sensor.
 
 ## Software setup
 
 1. Install the **ESP32 board package** in the Arduino IDE
-   (Boards Manager → "esp32" by Espressif).
+   (Boards Manager → "esp32" by Espressif, 2.0.2+).
 2. Install these libraries (Library Manager):
    - **Adafruit VL53L0X**
    - **PubSubClient** (Nick O'Leary)
    - **ArduinoJson** (v7.x)
-3. In `firmware/pullup_tracker/`, copy `config.example.h` → `config.h` and fill
-   in your WiFi + MQTT details. `config.h` is gitignored.
-4. Open `pullup_tracker.ino`, select your ESP32 board + port, and upload.
+   - **DHT sensor library** (Adafruit) + **Adafruit Unified Sensor**
+3. In `firmware/helm/`, copy `config.example.h` → `config.h` and fill in your
+   WiFi + MQTT details. `config.h` is gitignored.
+4. Open `helm.ino`, select your ESP32 board + port, and upload.
 5. Open Serial Monitor at **115200 baud** to watch it connect and detect reps.
 
 ## How it behaves
@@ -37,11 +44,15 @@ beam; at the top of a pull-up your head rises close to the sensor.
   (for the live gauge + calibration).
 - Publishes `session_start`, `rep`, and `session_end` events to
   `pullup/<DEVICE_ID>/event`.
+- Publishes temperature and humidity every 60 s to `pullup/<DEVICE_ID>/env`
+  (sampled only when idle so the DHT read never stalls a rep).
 - Publishes retained online/offline status to `pullup/<DEVICE_ID>/status`
   (offline is delivered by the MQTT Last-Will if the device drops).
 - Subscribes to the retained `pullup/<DEVICE_ID>/config` topic; whenever you
-  change thresholds in the web **Settings** page, the new values arrive
-  instantly — **no reflashing needed**.
+  change thresholds or the buzzer toggles in the web **Settings** page, the new
+  values arrive instantly — **no reflashing needed**.
+- Chirps the buzzer on each counted rep and plays a two-tone jingle on session
+  end, both gated by the Settings sound toggles.
 
 ## Calibration
 

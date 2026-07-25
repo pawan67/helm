@@ -3,10 +3,13 @@ import {
   uuid,
   text,
   integer,
+  real,
+  boolean,
   timestamp,
   date,
   pgEnum,
   jsonb,
+  index,
 } from "drizzle-orm/pg-core";
 
 /** A session is classified once it ends, based on whether any reps happened. */
@@ -52,6 +55,26 @@ export const repEvents = pgTable("rep_events", {
 });
 
 /**
+ * Ambient temperature/humidity samples from the on-bar DHT11. One row per
+ * publish (~1/min). Raw and rebuildable-free — the Environment view aggregates
+ * these into hourly/daily buckets at query time (no separate rollup table).
+ */
+export const envReadings = pgTable(
+  "env_readings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    deviceId: text("device_id").notNull(),
+    /** Server receive time (the ESP32 has no reliable wall clock). */
+    at: timestamp("at", { withTimezone: true }).notNull(),
+    /** Degrees Celsius. Nullable so a failed sensor read can be recorded as a gap. */
+    tempC: real("temp_c"),
+    /** Relative humidity (%). */
+    humidity: real("humidity"),
+  },
+  (t) => [index("env_readings_at_idx").on(t.at)],
+);
+
+/**
  * Per-local-day rollup, rebuildable from sessions. Keeps history / streak /
  * goal queries fast.
  */
@@ -86,6 +109,13 @@ export type DetectionThresholds = {
   presenceDebounceMs: number;
 };
 
+/** Buzzer behaviour, pushed to the device via retained MQTT config. */
+export type SoundSettings = {
+  soundEnabled: boolean;
+  beepOnRep: boolean;
+  beepOnSessionEnd: boolean;
+};
+
 /** Single-row app settings (id is always 1). */
 export const settings = pgTable("settings", {
   id: integer("id").primaryKey().default(1),
@@ -94,15 +124,31 @@ export const settings = pgTable("settings", {
   dailyGoalHangMs: integer("daily_goal_hang_ms").notNull().default(120000),
   deviceId: text("device_id").notNull().default("bar-01"),
   thresholds: jsonb("thresholds").$type<DetectionThresholds>().notNull(),
+  /** Master buzzer switch — off silences all beeps regardless of the flags below. */
+  soundEnabled: boolean("sound_enabled").notNull().default(true),
+  /** Chirp on each counted rep. */
+  beepOnRep: boolean("beep_on_rep").notNull().default(true),
+  /** Two-tone jingle when a set is saved. */
+  beepOnSessionEnd: boolean("beep_on_session_end").notNull().default(true),
+  /** When off, live temperature still shows but nothing is written to env_readings. */
+  tempLoggingEnabled: boolean("temp_logging_enabled").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type RepEvent = typeof repEvents.$inferSelect;
+export type EnvReading = typeof envReadings.$inferSelect;
+export type NewEnvReading = typeof envReadings.$inferInsert;
 export type DailyStat = typeof dailyStats.$inferSelect;
 export type PersonalRecord = typeof personalRecords.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
+
+export const DEFAULT_SOUND: SoundSettings = {
+  soundEnabled: true,
+  beepOnRep: true,
+  beepOnSessionEnd: true,
+};
 
 export const DEFAULT_THRESHOLDS: DetectionThresholds = {
   presenceMaxMm: 900,

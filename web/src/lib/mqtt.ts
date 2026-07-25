@@ -5,7 +5,7 @@ import {
   publishLive,
   type DeviceState,
 } from "./live-bus";
-import { persistSession, getSettings } from "@/db/persist";
+import { persistSession, persistEnvReading, getSettings } from "@/db/persist";
 
 /**
  * Long-lived MQTT subscriber. Started once from instrumentation.ts. Bridges the
@@ -21,6 +21,7 @@ function topics(deviceId: string) {
     event: `pullup/${deviceId}/event`,
     status: `pullup/${deviceId}/status`,
     config: `pullup/${deviceId}/config`,
+    env: `pullup/${deviceId}/env`,
   };
 }
 
@@ -38,6 +39,7 @@ type EventMsg =
       repTimings?: { repNumber: number; offsetMs: number; upDurationMs: number }[];
     };
 type StatusMsg = { k?: string; online: boolean; fw?: string; rssi?: number };
+type EnvMsg = { k?: string; tempC?: number; humidity?: number };
 
 /** Verify the device shared-secret when present (defense in depth). */
 function keyOk(k: string | undefined): boolean {
@@ -63,7 +65,7 @@ export function startMqtt(): MqttClient {
 
   client.on("connect", async () => {
     console.log(`[mqtt] connected to ${env.mqttUrl}`);
-    client.subscribe([t.telemetry, t.event, t.status], { qos: 1 }, (err) => {
+    client.subscribe([t.telemetry, t.event, t.status, t.env], { qos: 1 }, (err) => {
       if (err) console.error("[mqtt] subscribe error:", err);
     });
     await publishConfig();
@@ -84,6 +86,7 @@ export function startMqtt(): MqttClient {
     if (topic === t.telemetry) handleTelemetry(payload as TelemetryMsg);
     else if (topic === t.event) void handleEvent(deviceId, payload as EventMsg);
     else if (topic === t.status) handleStatus(payload as StatusMsg);
+    else if (topic === t.env) void handleEnv(deviceId, payload as EnvMsg);
   });
 
   return client;
@@ -187,6 +190,36 @@ function handleStatus(msg: StatusMsg) {
 }
 
 /**
+ * Ambient temperature/humidity from the on-bar DHT11. Always updates the live
+ * state (so current temp shows regardless), but only persists a history row
+ * when temperature logging is enabled in settings.
+ */
+async function handleEnv(deviceId: string, msg: EnvMsg) {
+  if (!keyOk(msg.k)) return;
+  const at = Date.now();
+  const tempC = num(msg.tempC);
+  const humidity = num(msg.humidity);
+  if (tempC == null && humidity == null) return; // nothing usable
+
+  patchLiveState({ tempC, humidity, deviceOnline: true });
+  publishLive({ kind: "env", tempC, humidity, at });
+
+  try {
+    const s = await getSettings();
+    if (s.tempLoggingEnabled) {
+      await persistEnvReading({ deviceId, at: new Date(at), tempC, humidity });
+    }
+  } catch (err) {
+    console.error("[mqtt] failed to persist env reading:", err);
+  }
+}
+
+/** Coerce to a finite number or null (rejects NaN / non-numeric payloads). */
+function num(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/**
  * Publish the current detection thresholds + goals as a *retained* config
  * message so the device receives them immediately on (re)connect, and live
  * whenever settings change.
@@ -199,6 +232,9 @@ export async function publishConfig() {
     const payload = JSON.stringify({
       ...s.thresholds,
       dailyGoalReps: s.dailyGoalReps,
+      soundEnabled: s.soundEnabled,
+      beepOnRep: s.beepOnRep,
+      beepOnSessionEnd: s.beepOnSessionEnd,
     });
     client.publish(topics(s.deviceId).config, payload, { qos: 1, retain: true });
     console.log("[mqtt] published retained config");

@@ -1,6 +1,8 @@
 /*
- * IRONHANG — ESP32 + VL53L0X pull-up & dead-hang tracker firmware
+ * HELM — bar-node firmware (ESP32 + VL53L0X + DHT11 + passive buzzer)
  * ---------------------------------------------------------------
+ * The "bar node" of a HELM console: pull-up / dead-hang detection, ambient
+ * temperature & humidity, and a buzzer, all streamed to the server over MQTT.
  * Reads a VL53L0X time-of-flight sensor mounted ~10cm above the bar (pointing
  * outward at the user), detects pull-up reps and dead-hang time with a state
  * machine, and streams everything to the server over MQTT.
@@ -11,9 +13,15 @@
  *   - Adafruit VL53L0X
  *   - PubSubClient  (by Nick O'Leary)
  *   - ArduinoJson   (v7.x)
+ *   - DHT sensor library (by Adafruit) + Adafruit Unified Sensor
  *
- * Board: any ESP32 dev module. Wiring (I2C):
- *   VL53L0X VIN -> 3V3 | GND -> GND | SDA -> GPIO21 | SCL -> GPIO22
+ * Requires ESP32 Arduino core 2.0.2+ (uses tone()/noTone() for the buzzer).
+ *
+ * Board: any ESP32 dev module. Wiring:
+ *   VL53L0X  VIN -> 3V3 | GND -> GND | SDA -> GPIO21 | SCL -> GPIO22
+ *   DHT11    VCC -> 3V3 | GND -> GND | DATA -> GPIO25 (10k pull-up DATA->3V3
+ *            if using a bare sensor; most modules have it onboard)
+ *   Buzzer   passive piezo: + -> GPIO26 | - -> GND
  *
  * Copy config.example.h -> config.h and fill in your WiFi / MQTT details.
  */
@@ -23,9 +31,18 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Adafruit_VL53L0X.h>
+#include <DHT.h>
 #include "config.h"
 
-#define FW_VERSION "1.0.0"
+#define FW_VERSION "1.1.0"
+
+// ---- Ambient sensor (DHT11) ----
+#define DHT_PIN 25
+#define DHT_TYPE DHT11
+const unsigned long ENV_INTERVAL_MS = 60000;  // DHT11 maxes ~1Hz; sample once a minute
+
+// ---- Passive buzzer ----
+#define BUZZER_PIN 26
 
 // ---- Detection thresholds (defaults; overridden by retained MQTT config) ----
 struct Thresholds {
@@ -38,6 +55,14 @@ struct Thresholds {
   long presenceDebounceMs = 300;
 };
 Thresholds th;
+
+// ---- Buzzer settings (defaults; overridden by retained MQTT config) ----
+struct Sound {
+  bool enabled = true;        // master switch
+  bool onRep = true;          // chirp on each counted rep
+  bool onSessionEnd = true;   // jingle when a set is saved
+};
+Sound snd;
 
 // ---- Detection state ----
 enum State { IDLE, HANGING, REP_UP };
@@ -71,12 +96,28 @@ int smoothBuf[SMOOTH_N];
 int smoothCount = 0;
 int smoothIdx = 0;
 
+// ---- Ambient sensor + buzzer ----
+DHT dht(DHT_PIN, DHT_TYPE);
+unsigned long lastEnv = 0;
+bool envPrimed = false;  // first reading fires a few seconds after boot
+
+// Non-blocking beep scheduler: a tiny queue of {frequency, duration} steps so
+// multi-tone jingles play without ever stalling the detection loop. freq 0 = a
+// silent gap between tones.
+#define MAX_BEEP_STEPS 6
+struct BeepStep { int freq; int durMs; };
+BeepStep beepSteps[MAX_BEEP_STEPS];
+int beepCount = 0;
+int beepIdx = 0;
+bool beeping = false;
+unsigned long beepStepStart = 0;
+
 // ---- Networking ----
 WiFiClient wifiClient;
 PubSubClient mqtt(wifiClient);
 Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 
-String topicTelemetry, topicEvent, topicStatus, topicConfig;
+String topicTelemetry, topicEvent, topicStatus, topicConfig, topicEnv;
 
 unsigned long lastTelemetry = 0;
 const unsigned long TELEMETRY_INTERVAL_MS = 80;
@@ -122,6 +163,53 @@ void resetSession() {
   repTimingCount = 0;
   smoothCount = 0;
   smoothIdx = 0;
+}
+
+// ------------------------------------------------------------------
+//  Buzzer (non-blocking)
+// ------------------------------------------------------------------
+void startBeepSeq(const BeepStep* steps, int n) {
+  if (!snd.enabled) return;
+  if (n > MAX_BEEP_STEPS) n = MAX_BEEP_STEPS;
+  for (int i = 0; i < n; i++) beepSteps[i] = steps[i];
+  beepCount = n;
+  beepIdx = 0;
+  beeping = true;
+  beepStepStart = millis();
+  if (beepSteps[0].freq > 0) tone(BUZZER_PIN, beepSteps[0].freq);
+  else noTone(BUZZER_PIN);
+}
+
+void updateBeep(unsigned long now) {
+  if (!beeping) return;
+  if ((long)(now - beepStepStart) < beepSteps[beepIdx].durMs) return;
+  beepIdx++;
+  if (beepIdx >= beepCount) {
+    noTone(BUZZER_PIN);
+    beeping = false;
+    return;
+  }
+  beepStepStart = now;
+  if (beepSteps[beepIdx].freq > 0) tone(BUZZER_PIN, beepSteps[beepIdx].freq);
+  else noTone(BUZZER_PIN);
+}
+
+// Short chirp when a rep is counted.
+void beepRep() {
+  static const BeepStep seq[] = { {2000, 60} };
+  startBeepSeq(seq, 1);
+}
+
+// Two rising tones when a set is saved.
+void beepSessionEnd() {
+  static const BeepStep seq[] = { {1568, 90}, {0, 40}, {2093, 150} };
+  startBeepSeq(seq, 3);
+}
+
+// Silence immediately (e.g. when sound is turned off mid-beep).
+void stopBeep() {
+  noTone(BUZZER_PIN);
+  beeping = false;
 }
 
 // ------------------------------------------------------------------
@@ -189,6 +277,28 @@ void publishStatus(bool online) {
   mqtt.publish(topicStatus.c_str(), (const uint8_t*)buf, n, true);  // retained
 }
 
+void publishEnv(float tempC, float humidity) {
+  JsonDocument doc;
+  doc["k"] = DEVICE_KEY;
+  doc["tempC"] = tempC;
+  doc["humidity"] = humidity;
+  char buf[96];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  mqtt.publish(topicEnv.c_str(), (const uint8_t*)buf, n, false);
+}
+
+// Read the DHT11 and publish; skips silently on a failed (NaN) read.
+void readAndPublishEnv() {
+  float t = dht.readTemperature();  // Celsius
+  float h = dht.readHumidity();
+  if (isnan(t) || isnan(h)) {
+    Serial.println("[env] DHT read failed");
+    return;
+  }
+  publishEnv(t, h);
+  Serial.printf("[env] %.1fC %.0f%%\n", t, h);
+}
+
 // ------------------------------------------------------------------
 //  Config (retained) from server
 // ------------------------------------------------------------------
@@ -203,7 +313,12 @@ void onMessage(char* topic, byte* payload, unsigned int len) {
   if (doc["minRepMs"].is<long>()) th.minRepMs = doc["minRepMs"];
   if (doc["releaseMs"].is<long>()) th.releaseMs = doc["releaseMs"];
   if (doc["presenceDebounceMs"].is<long>()) th.presenceDebounceMs = doc["presenceDebounceMs"];
-  Serial.printf("[config] repNear=%d presenceMax=%d\n", th.repNearMm, th.presenceMaxMm);
+  if (doc["soundEnabled"].is<bool>()) snd.enabled = doc["soundEnabled"];
+  if (doc["beepOnRep"].is<bool>()) snd.onRep = doc["beepOnRep"];
+  if (doc["beepOnSessionEnd"].is<bool>()) snd.onSessionEnd = doc["beepOnSessionEnd"];
+  if (!snd.enabled) stopBeep();  // silence any beep in progress
+  Serial.printf("[config] repNear=%d presenceMax=%d sound=%d\n",
+                th.repNearMm, th.presenceMaxMm, snd.enabled);
 }
 
 // ------------------------------------------------------------------
@@ -222,6 +337,7 @@ void endSession(unsigned long endAt) {
   unsigned long start = sessionStart ? sessionStart : endAt;
   long durationMs = (long)(endAt - start);
   publishSessionEnd(durationMs);
+  if (snd.onSessionEnd) beepSessionEnd();
   Serial.printf("[session] end reps=%d hang=%ldms max=%ldms\n",
                 reps, (long)hangMs, (long)maxHangMs);
   resetSession();
@@ -291,6 +407,7 @@ void processSample(int rawDistance, unsigned long now) {
             repTimingCount++;
           }
           publishRep(reps, dur);
+          if (snd.onRep) beepRep();
           Serial.printf("[rep] #%d up=%ldms\n", reps, dur);
         }
         hasRepStart = false;
@@ -311,6 +428,7 @@ void setupTopics() {
   topicEvent = base + "event";
   topicStatus = base + "status";
   topicConfig = base + "config";
+  topicEnv = base + "env";
 }
 
 void connectWifi() {
@@ -328,7 +446,7 @@ void connectWifi() {
 void connectMqtt() {
   while (!mqtt.connected()) {
     Serial.print("[mqtt] connecting...");
-    String clientId = String("ironhang-") + DEVICE_ID;
+    String clientId = String("helm-") + DEVICE_ID;
     // Last-Will: mark device offline (retained) if the connection drops.
     String willPayload = String("{\"k\":\"") + DEVICE_KEY + "\",\"online\":false}";
     bool ok = mqtt.connect(
@@ -348,14 +466,25 @@ void connectMqtt() {
 void setup() {
   Serial.begin(115200);
   delay(200);
-  Serial.println("\nIRONHANG firmware " FW_VERSION);
+  Serial.println("\nHELM bar-node firmware " FW_VERSION);
 
   Wire.begin();
-  if (!lox.begin()) {
+  // Long-range mode: default mode only reaches ~50-80cm on a low-reflectance
+  // target (a head/hair absorbs IR). LONG_RANGE lowers the signal-rate limit
+  // and lengthens the VCSEL pulses to reach ~1.5-2m. Trades a little accuracy.
+  if (!lox.begin(VL53L0X_I2C_ADDR, false, &Wire,
+                 Adafruit_VL53L0X::VL53L0X_SENSE_LONG_RANGE)) {
     Serial.println("[vl53l0x] NOT FOUND — check wiring!");
     while (true) delay(1000);
   }
-  Serial.println("[vl53l0x] ready");
+  // Larger timing budget = more range + steadier readings (slower sampling).
+  // 50ms -> ~20Hz, plenty for rep detection. Lower it for faster sampling.
+  lox.setMeasurementTimingBudgetMicroSeconds(50000);
+  Serial.println("[vl53l0x] ready (long-range)");
+
+  dht.begin();
+  pinMode(BUZZER_PIN, OUTPUT);
+  noTone(BUZZER_PIN);
 
   setupTopics();
   connectWifi();
@@ -376,7 +505,17 @@ void loop() {
   int distance = (measure.RangeStatus != 4) ? measure.RangeMilliMeter : 9999;
 
   unsigned long now = millis();
+  updateBeep(now);
   processSample(distance, now);
+
+  // Sample ambient temp/humidity on a slow timer. Only when idle so the DHT's
+  // blocking read never stalls mid-rep (first reading a few seconds after boot).
+  bool envDue = envPrimed ? (now - lastEnv >= ENV_INTERVAL_MS) : (now >= 2500);
+  if (envDue && state == IDLE) {
+    readAndPublishEnv();
+    lastEnv = now;
+    envPrimed = true;
+  }
 
   // Stream raw telemetry (throttled, or immediately on state/large change).
   bool stateChanged = (state != lastPublishedState);

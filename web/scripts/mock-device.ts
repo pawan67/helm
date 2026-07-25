@@ -7,6 +7,11 @@
  *   pnpm mock-device reps 12    # a set of 12 reps
  *   pnpm mock-device hang 20    # a 20-second dead hang
  *   pnpm mock-device loop       # random sessions forever
+ *   pnpm mock-device env 20     # publish 20 ambient temp/humidity readings
+ *
+ * Ambient temp/humidity is also published every few seconds during any run, so
+ * the live current-temperature readout updates without hardware. (To backfill a
+ * 7/30-day chart, use `pnpm seed-env` — the server stamps env with receive time.)
  *
  * Reads MQTT settings from web/.env (or process.env). The published payloads
  * match those the firmware sends, driven by the same Detector as the tests.
@@ -80,6 +85,17 @@ function handleEvents(events: DetectionEvent[]) {
   }
 }
 
+// Synthetic ambient sensor: gentle drift around a comfortable indoor baseline.
+const ENV_EVERY_MS = 5000; // publish this often (sim clock) during a run
+let lastEnvAt = -Infinity;
+
+function publishEnv() {
+  const tempC = Math.round((23 + Math.sin(clock / 90000) * 2.5 + (Math.random() - 0.5)) * 10) / 10;
+  const humidity = Math.round(48 + Math.sin(clock / 120000) * 8 + (Math.random() - 0.5) * 3);
+  pub(`${base}/env`, { tempC, humidity });
+  console.log(`→ env ${tempC}°C ${humidity}%`);
+}
+
 const DT = 40; // ms per sample (~25 Hz)
 let clock = 0;
 
@@ -89,6 +105,10 @@ async function emit(distanceMm: number) {
   const events = detector.push({ t: clock, distanceMm: jittered });
   pub(`${base}/telemetry`, { distanceMm: jittered, state: detector.state });
   handleEvents(events);
+  if (clock - lastEnvAt >= ENV_EVERY_MS) {
+    lastEnvAt = clock;
+    publishEnv();
+  }
   await sleep(DT);
 }
 
@@ -140,7 +160,16 @@ async function main() {
 
   const [mode, arg] = process.argv.slice(2);
 
-  if (mode === "loop") {
+  publishEnv(); // one reading up front so the live temp shows immediately
+
+  if (mode === "env") {
+    const count = Number(arg) || 10;
+    for (let i = 0; i < count; i++) {
+      clock += 60000; // advance the drift baseline between readings
+      publishEnv();
+      await sleep(300);
+    }
+  } else if (mode === "loop") {
     // Random sessions forever.
     let n = 0;
     while (true) {

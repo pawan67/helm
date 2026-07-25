@@ -33,6 +33,8 @@ const defaultState: LiveState = {
   sessionStartedAt: null,
   rssi: null,
   fwVersion: null,
+  tempC: null,
+  humidity: null,
   updatedAt: 0,
 };
 
@@ -104,6 +106,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
             ...s,
             deviceOnline: ev.online,
             state: ev.online ? s.state : "offline",
+          }));
+          break;
+        case "env":
+          setState((s) => ({
+            ...s,
+            tempC: ev.tempC,
+            humidity: ev.humidity,
+            deviceOnline: true,
           }));
           break;
         default:

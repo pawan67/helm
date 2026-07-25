@@ -1,8 +1,23 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  Center,
+  Field,
+  Heading,
+  Icon,
+  Input,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
+import { ArrowRight, TriangleAlert } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { Eyebrow } from "@/components/shared/bits";
 
 function LoginForm() {
   const router = useRouter();
@@ -37,46 +52,111 @@ function LoginForm() {
   }
 
   return (
-    <div className="bg-atmosphere relative flex min-h-dvh items-center justify-center px-5">
-      <div className="bg-grid pointer-events-none absolute inset-0 opacity-40" />
-      <div className="animate-rise relative z-10 w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Logo className="h-16 w-16" />
-          <h1 className="font-display mt-5 text-5xl tracking-wide glow-lime">
-            IRONHANG
-          </h1>
-          <p className="eyebrow mt-3">pull-up · dead-hang · telemetry</p>
-        </div>
+    <Center
+      minH="100dvh"
+      bg="bg"
+      px="5"
+      py="10"
+      position="relative"
+      overflow="hidden"
+    >
+      {/* atmosphere */}
+      <Box
+        position="absolute"
+        top="33%"
+        left="50%"
+        boxSize="420px"
+        transform="translate(-50%, -50%)"
+        rounded="full"
+        bg="hazard.solid/10"
+        filter="blur(140px)"
+        pointerEvents="none"
+      />
 
-        <form onSubmit={submit} className="panel ring-accent p-6">
-          <label className="eyebrow mb-2 block">Access key</label>
-          <input
-            type="password"
-            autoFocus
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••"
-            className="w-full rounded-xl border border-line bg-ink-2 px-4 py-3 font-mono text-fg outline-none transition-colors placeholder:text-fg-faint focus:border-lime/60"
-          />
+      <Box
+        w="full"
+        maxW="sm"
+        position="relative"
+        zIndex="1"
+        animation="ih-rise 0.4s ease-out"
+      >
+        <form onSubmit={submit}>
+          <Card.Root bg="bg.panel">
+            <Card.Header alignItems="center" textAlign="center" gap="3" pt="2">
+              <Box position="relative">
+                <Box
+                  position="absolute"
+                  inset="0"
+                  rounded="2xl"
+                  bg="hazard.solid/15"
+                  filter="blur(20px)"
+                />
+                <Logo size={56} />
+              </Box>
+              <Heading size="3xl" letterSpacing="wide" color="hazard.fg">
+                HELM
+              </Heading>
+              <Eyebrow>operator console</Eyebrow>
+            </Card.Header>
 
-          {error && (
-            <p className="mt-3 font-mono text-xs text-danger">{error}</p>
-          )}
+            <Card.Body>
+              <Stack gap="4">
+                <Field.Root invalid={!!error}>
+                  <Field.Label htmlFor="access-key">
+                    <Eyebrow>Access key</Eyebrow>
+                  </Field.Label>
+                  <Input
+                    id="access-key"
+                    type="password"
+                    autoFocus
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••"
+                    size="lg"
+                    fontFamily="mono"
+                    letterSpacing="widest"
+                  />
+                </Field.Root>
 
-          <button
-            type="submit"
-            disabled={loading || password.length === 0}
-            className="mt-5 w-full rounded-xl bg-lime px-4 py-3 font-display text-lg tracking-wider text-ink transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {loading ? "UNLOCKING…" : "ENTER THE BAR"}
-          </button>
+                {error ? (
+                  <Alert.Root status="error" size="sm">
+                    <Alert.Indicator>
+                      <Icon as={TriangleAlert} />
+                    </Alert.Indicator>
+                    <Alert.Title fontFamily="mono">{error}</Alert.Title>
+                  </Alert.Root>
+                ) : null}
+              </Stack>
+            </Card.Body>
+
+            <Card.Footer>
+              <Button
+                type="submit"
+                colorPalette="hazard"
+                size="lg"
+                w="full"
+                loading={loading}
+                loadingText="UNLOCKING…"
+                disabled={password.length === 0}
+              >
+                TAKE THE HELM
+                <Icon as={ArrowRight} boxSize="4" />
+              </Button>
+            </Card.Footer>
+          </Card.Root>
         </form>
 
-        <p className="mt-6 text-center font-mono text-[0.68rem] text-fg-faint">
-          single-user · self-hosted
-        </p>
-      </div>
-    </div>
+        <Text
+          mt="6"
+          textAlign="center"
+          fontFamily="mono"
+          fontSize="xs"
+          color="fg.subtle"
+        >
+          single-user access · self-hosted
+        </Text>
+      </Box>
+    </Center>
   );
 }
 

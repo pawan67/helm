@@ -1,281 +1,153 @@
-@import "tailwindcss";
-
-/* ------------------------------------------------------------------ */
-/*  Design tokens — industrial-athletic instrument panel              */
-/* ------------------------------------------------------------------ */
-@theme {
-  --font-display: var(--font-anton), "Arial Narrow", sans-serif;
-  --font-body: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
-
-  --color-ink: #0a0b0e;
-  --color-ink-2: #101318;
-  --color-panel: #14181e;
-  --color-panel-2: #1a1f27;
-  --color-line: #262c35;
-  --color-line-bright: #38404b;
-
-  --color-fg: #eceef1;
-  --color-fg-dim: #9aa3ad;
-  --color-fg-faint: #616a75;
-
-  --color-lime: #c8f731;
-  --color-lime-dim: #8ba81f;
-  --color-cyan: #34e0d0;
-  --color-amber: #ffab2e;
-  --color-danger: #ff5a52;
-
-  --radius-panel: 18px;
+/*
+ * HELM globals. Chakra (custom `system`) provides the reset + tokens; this
+ * file adds what tokens can't: matte-steel film grain, the hazard-stripe motif,
+ * a quiet instrument scrollbar, and the motion keyframes referenced via Chakra's
+ * `animation` style prop. See DESIGN.md.
+ */
+html,
+body {
+  min-height: 100%;
+}
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01";
 }
 
-/* ------------------------------------------------------------------ */
-/*  Base                                                              */
-/* ------------------------------------------------------------------ */
-@layer base {
-  * {
-    border-color: var(--color-line);
-  }
-
-  html {
-    -webkit-text-size-adjust: 100%;
-  }
-
-  body {
-    background-color: var(--color-ink);
-    color: var(--color-fg);
-    font-family: var(--font-body);
-    font-feature-settings: "ss01", "cv01";
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    overflow-x: hidden;
-  }
-
-  /* Tabular numerals everywhere numbers matter. */
-  .tnum {
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
-  }
-
-  ::selection {
-    background: var(--color-lime);
-    color: #0a0b0e;
-  }
-
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  ::-webkit-scrollbar-track {
-    background: var(--color-ink);
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--color-line-bright);
-    border-radius: 999px;
-    border: 2px solid var(--color-ink);
-  }
+/* Film grain — a fixed, faint matte-metal texture over the whole canvas. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ------------------------------------------------------------------ */
-/*  Atmosphere — measurement grid + grain                             */
-/* ------------------------------------------------------------------ */
-@layer components {
-  .bg-grid {
-    background-image:
-      linear-gradient(to right, color-mix(in srgb, var(--color-line) 55%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in srgb, var(--color-line) 55%, transparent) 1px, transparent 1px);
-    background-size: 44px 44px;
-  }
+/* Instrument scrollbar — steel, unobtrusive. */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--chakra-colors-border);
+  border-radius: 2px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--chakra-colors-border-emphasized);
+  background-clip: padding-box;
+}
 
-  /* Faint radial vignette + lime bloom top-left for depth */
-  .bg-atmosphere {
-    background:
-      radial-gradient(120% 90% at 8% -10%, color-mix(in srgb, var(--color-lime) 9%, transparent), transparent 55%),
-      radial-gradient(90% 80% at 100% 0%, color-mix(in srgb, var(--color-cyan) 6%, transparent), transparent 50%),
-      var(--color-ink);
-  }
+/*
+ * Hazard stripe — caution tape. Marks a LIVE surface, never decoration.
+ * `.ih-stripe` is the bold banner fill; `.ih-stripe-edge` is a thin top rule.
+ */
+.ih-stripe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in oklch, var(--chakra-colors-hazard-solid) 90%, black) 0 11px,
+    color-mix(in oklch, var(--chakra-colors-hazard-solid) 55%, black) 11px 22px
+  );
+}
+.ih-stripe-edge {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--chakra-colors-hazard-solid) 0 6px,
+    transparent 6px 12px
+  );
+}
 
-  .grain::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0.035;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
+/* A machined top-highlight, for panels that should read as brushed steel. */
+.ih-machined {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
 
-  .panel {
-    background: linear-gradient(180deg, var(--color-panel) 0%, var(--color-ink-2) 100%);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-panel);
-  }
+/* ---- Motion (referenced via Chakra `animation` prop) ---------------------- */
 
-  .panel-inset {
-    background: var(--color-ink-2);
-    border: 1px solid var(--color-line);
+/* Rep increment: a hard, quick pop — no overshoot beyond a firm snap. */
+@keyframes ih-pop {
+  0% {
+    transform: scale(1);
   }
-
-  /* Section eyebrow label */
-  .eyebrow {
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 0.28em;
-    font-size: 0.68rem;
-    color: var(--color-fg-faint);
+  30% {
+    transform: scale(1.1);
   }
-
-  .glow-lime {
-    text-shadow: 0 0 28px color-mix(in srgb, var(--color-lime) 55%, transparent);
-  }
-  .glow-cyan {
-    text-shadow: 0 0 26px color-mix(in srgb, var(--color-cyan) 50%, transparent);
-  }
-
-  .ring-accent {
-    box-shadow: 0 0 0 1px var(--color-line), 0 0 40px -12px color-mix(in srgb, var(--color-lime) 40%, transparent);
-  }
-
-  /* Lime range slider */
-  .range-lime {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 6px;
-    border-radius: 999px;
-    background: var(--color-line);
-    outline: none;
-  }
-  .range-lime::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--color-lime);
-    cursor: pointer;
-    border: 3px solid var(--color-ink);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--color-lime) 60%, transparent);
-  }
-  .range-lime::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--color-lime);
-    cursor: pointer;
-    border: 3px solid var(--color-ink);
+  100% {
+    transform: scale(1);
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Motion                                                            */
-/* ------------------------------------------------------------------ */
-@layer utilities {
-  @keyframes rise-in {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+/* PR stamp: slams in from oversize and settles. Heavy, not sparkly. */
+@keyframes ih-stamp {
+  0% {
+    transform: scale(1.35) rotate(-2deg);
+    opacity: 0;
   }
-  .animate-rise {
-    animation: rise-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  60% {
+    transform: scale(0.97) rotate(0deg);
+    opacity: 1;
   }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
 
-  @keyframes pop {
-    0% {
-      transform: scale(1);
-    }
-    35% {
-      transform: scale(1.16);
-    }
-    100% {
-      transform: scale(1);
-    }
+/* Full-screen flash on a rep. */
+@keyframes ih-flash {
+  0% {
+    opacity: 0.5;
   }
-  .animate-pop {
-    animation: pop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+  100% {
+    opacity: 0;
   }
+}
 
-  @keyframes pulse-ring {
-    0% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-lime) 55%, transparent);
-    }
-    70% {
-      box-shadow: 0 0 0 22px transparent;
-    }
-    100% {
-      box-shadow: 0 0 0 0 transparent;
-    }
+/* Status LED blink. */
+@keyframes ih-blink {
+  0%,
+  100% {
+    opacity: 1;
   }
-  .animate-pulse-ring {
-    animation: pulse-ring 1.4s ease-out infinite;
+  50% {
+    opacity: 0.25;
   }
+}
 
-  @keyframes blink {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.25;
-    }
+/* Sensor beam sweep on the distance gauge. */
+@keyframes ih-sweep {
+  0% {
+    top: -24%;
   }
-  .animate-blink {
-    animation: blink 1.1s steps(2, start) infinite;
+  100% {
+    top: 100%;
   }
+}
 
-  @keyframes sweep {
-    from {
-      transform: translateY(-100%);
-    }
-    to {
-      transform: translateY(400%);
-    }
+/* Content rise-in (used sparingly, state-driven — not page choreography). */
+@keyframes ih-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
   }
-  .animate-sweep {
-    animation: sweep 2.6s linear infinite;
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  @keyframes flash-pr {
-    0% {
-      opacity: 0;
-      transform: scale(0.8);
-    }
-    12% {
-      opacity: 1;
-      transform: scale(1.05);
-    }
-    22% {
-      transform: scale(1);
-    }
-    85% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
-    }
-  }
-
-  .stagger > * {
-    animation: rise-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  .stagger > *:nth-child(1) { animation-delay: 0.04s; }
-  .stagger > *:nth-child(2) { animation-delay: 0.1s; }
-  .stagger > *:nth-child(3) { animation-delay: 0.16s; }
-  .stagger > *:nth-child(4) { animation-delay: 0.22s; }
-  .stagger > *:nth-child(5) { animation-delay: 0.28s; }
-  .stagger > *:nth-child(6) { animation-delay: 0.34s; }
-
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.001ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.001ms !important;
-    }
+/* Respect the user's motion preference: state changes become instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

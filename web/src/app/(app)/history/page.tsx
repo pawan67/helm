@@ -1,6 +1,7 @@
+import { Stack } from "@chakra-ui/react";
 import { getDailyStats, getRecentSessions } from "@/db/queries";
 import { HistoryView } from "@/components/charts/history-view";
-import { PageHeader } from "@/components/ui";
+import { SectionHeader } from "@/components/shared/bits";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,9 @@ export default async function HistoryPage() {
   ]);
 
   return (
-    <>
-      <PageHeader eyebrow="Progress over time" title="History" />
+    <Stack gap="6">
+      <SectionHeader eyebrow="Trends · sessions" title="History" />
       <HistoryView initialDays={days} initialSessions={sessions} />
-    </>
+    </Stack>
   );
 }

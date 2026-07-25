@@ -1,11 +1,50 @@
+import {
+  Box,
+  Card,
+  Circle,
+  EmptyState,
+  Grid,
+  HStack,
+  Separator,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
+import { Flame, Medal, Timer, Trophy } from "lucide-react";
 import { getRecords, getDashboardSummary } from "@/db/queries";
-import { PageHeader, EmptyState } from "@/components/ui";
+import {
+  Eyebrow,
+  Metric,
+  SectionHeader,
+  StatCard,
+  type Accent,
+} from "@/components/shared/bits";
 import { RECORD_LABELS } from "@/lib/live-types";
 import { formatHang } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
 const ORDER = ["most_reps_set", "most_reps_day", "longest_hang"] as const;
+
+const META: Record<
+  (typeof ORDER)[number],
+  { icon: typeof Trophy; accent: Accent; desc: string }
+> = {
+  most_reps_set: {
+    icon: Trophy,
+    accent: "teal",
+    desc: "Reps in one unbroken set",
+  },
+  most_reps_day: {
+    icon: Medal,
+    accent: "orange",
+    desc: "Most reps across a single day",
+  },
+  longest_hang: {
+    icon: Timer,
+    accent: "cyan",
+    desc: "Longest single dead hang",
+  },
+};
 
 function renderValue(type: string, value: number) {
   if (type === "longest_hang") return formatHang(value);
@@ -25,89 +64,141 @@ export default async function RecordsPage() {
   const anyRecord = records.some((r) => r.value > 0);
 
   return (
-    <>
-      <PageHeader eyebrow="Personal bests" title="Records" />
+    <Stack gap="6">
+      <SectionHeader eyebrow="Personal bests" title="Records" />
 
       {!anyRecord ? (
-        <EmptyState
-          title="No records yet"
-          hint="Every session is measured against your bests. Beat one and it lands here with a celebration."
-        />
+        <Card.Root bg="bg.panel/50" borderStyle="dashed">
+          <Card.Body>
+            <EmptyState.Root>
+              <EmptyState.Content>
+                <EmptyState.Indicator>
+                  <Trophy />
+                </EmptyState.Indicator>
+                <EmptyState.Title>No records yet</EmptyState.Title>
+                <EmptyState.Description>
+                  Every session is measured against your bests. Beat one and it
+                  lands here with a celebration.
+                </EmptyState.Description>
+              </EmptyState.Content>
+            </EmptyState.Root>
+          </Card.Body>
+        </Card.Root>
       ) : (
-        <div className="stagger grid gap-4 sm:grid-cols-3">
+        <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap="4">
           {ORDER.map((type, i) => {
+            const meta = META[type];
+            const RecIcon = meta.icon;
             const rec = byType.get(type);
             const value = rec?.value ?? 0;
+            const isSet = value > 0;
             const achieved = rec?.achievedAt ? new Date(rec.achievedAt) : null;
             return (
-              <div
+              <Card.Root
                 key={type}
-                className="panel ring-accent relative overflow-hidden p-6"
+                colorPalette={meta.accent}
+                bg="bg.panel"
+                position="relative"
+                overflow="hidden"
               >
-                <div className="absolute -right-6 -top-6 font-display text-[7rem] leading-none text-amber/5 select-none">
+                {/* ghost rank numeral */}
+                <Metric
+                  aria-hidden
+                  position="absolute"
+                  top="-6"
+                  right="-1"
+                  fontSize="8rem"
+                  color="colorPalette.solid/10"
+                  userSelect="none"
+                  pointerEvents="none"
+                >
                   {i + 1}
-                </div>
-                <TrophyIcon className="h-8 w-8 text-amber" />
-                <div className="eyebrow mt-5">{RECORD_LABELS[type]}</div>
-                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="font-display text-6xl leading-none tnum text-amber">
-                    {value > 0 ? renderValue(type, value) : "—"}
-                  </span>
-                  <span className="font-mono text-xs uppercase tracking-widest text-fg-faint">
-                    {unit(type)}
-                  </span>
-                </div>
-                <div className="mt-4 font-mono text-[0.7rem] text-fg-faint">
-                  {achieved
-                    ? `set ${achieved.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-                    : "not set"}
-                </div>
-              </div>
+                </Metric>
+
+                <Card.Header>
+                  <HStack justify="space-between" align="start">
+                    <Stack gap="1">
+                      <Eyebrow>{RECORD_LABELS[type]}</Eyebrow>
+                      <Text fontSize="xs" color="fg.muted">
+                        {meta.desc}
+                      </Text>
+                    </Stack>
+                    <Circle
+                      size="10"
+                      bg="colorPalette.subtle"
+                      color="colorPalette.fg"
+                      borderWidth="1px"
+                      borderColor="colorPalette.muted"
+                    >
+                      <RecIcon size={20} />
+                    </Circle>
+                  </HStack>
+                </Card.Header>
+
+                <Card.Body justifyContent="flex-end" gap="2">
+                  <HStack align="baseline" gap="2">
+                    <Metric
+                      fontSize="5xl"
+                      color={isSet ? "colorPalette.fg" : "fg.subtle"}
+                    >
+                      {isSet ? renderValue(type, value) : "—"}
+                    </Metric>
+                    {unit(type) ? <Eyebrow>{unit(type)}</Eyebrow> : null}
+                  </HStack>
+                  <Text
+                    fontFamily="mono"
+                    fontSize="xs"
+                    color="fg.subtle"
+                    fontVariantNumeric="tabular-nums"
+                  >
+                    {achieved
+                      ? `set ${achieved.toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}`
+                      : "not set"}
+                  </Text>
+                </Card.Body>
+
+                <Box
+                  aria-hidden
+                  position="absolute"
+                  insetX="0"
+                  bottom="0"
+                  h="2px"
+                  bg="colorPalette.solid/40"
+                />
+              </Card.Root>
             );
           })}
-        </div>
+        </Grid>
       )}
 
-      {/* Streaks */}
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div className="panel flex items-center justify-between p-6">
-          <div>
-            <div className="eyebrow">Current streak</div>
-            <div className="font-display mt-2 text-5xl tnum text-lime">
-              {summary.currentStreak}
-              <span className="ml-2 font-mono text-sm text-fg-faint">days</span>
-            </div>
-          </div>
-          <FireIcon className="h-14 w-14 text-lime/70" />
-        </div>
-        <div className="panel flex items-center justify-between p-6">
-          <div>
-            <div className="eyebrow">Best streak</div>
-            <div className="font-display mt-2 text-5xl tnum text-amber">
-              {summary.bestStreak}
-              <span className="ml-2 font-mono text-sm text-fg-faint">days</span>
-            </div>
-          </div>
-          <FireIcon className="h-14 w-14 text-amber/70" />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function TrophyIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7 4h10v4a5 5 0 0 1-10 0V4Z" />
-      <path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M9 20h6M12 13v3" />
-    </svg>
-  );
-}
-
-function FireIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3c1 3-1 4-2 6s0 4 2 4 3-2 2-4c2 1 3 3 3 5a5 5 0 0 1-10 0c0-3 2-5 3-7 .8-1.6 1.5-3 2-4Z" />
-    </svg>
+      <Stack gap="4">
+        <HStack gap="3">
+          <Eyebrow>Consistency</Eyebrow>
+          <Separator flex="1" borderColor="border.subtle" />
+        </HStack>
+        <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)" }} gap="4">
+          <StatCard
+            label="Current streak"
+            value={summary.currentStreak}
+            unit="days"
+            icon={Flame}
+            accent="teal"
+            sub="Days hitting goal, back to back"
+          />
+          <StatCard
+            label="Best streak"
+            value={summary.bestStreak}
+            unit="days"
+            icon={Flame}
+            accent="orange"
+            sub="Your all-time longest run"
+          />
+        </Grid>
+      </Stack>
+    </Stack>
   );
 }

@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
+import { Box, Flex, HStack, Square, Stack, Text } from "@chakra-ui/react";
 import type { Session } from "@/db/schema";
-import { TypePill } from "./ui";
+import { Metric, TypeBadge } from "@/components/shared/bits";
 import { formatHang } from "@/lib/time";
 
 function timeAgo(date: Date): string {
@@ -14,48 +16,81 @@ function timeAgo(date: Date): string {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function SessionRow({ session }: { session: Session }) {
+/**
+ * A single session in a list. Left tile shows the headline metric (reps for a
+ * pull-up set, best hold for a dead hang); right column shows the detail.
+ */
+export function SessionRow({
+  session,
+  actions,
+}: {
+  session: Session;
+  /** Optional trailing controls (e.g. edit/delete), shown at the far right. */
+  actions?: ReactNode;
+}) {
   const isPull = session.type === "pullup_set";
   const started = new Date(session.startedAt);
+  const accent = isPull ? "teal" : "cyan";
+
   return (
-    <div className="flex items-center gap-4 border-b border-line/70 py-3.5 last:border-0">
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-ink-2">
-        <span
-          className={`font-display text-xl leading-none tnum ${isPull ? "text-lime" : "text-cyan"}`}
-        >
+    <Flex
+      align="center"
+      gap="3.5"
+      py="3"
+      borderBottomWidth="1px"
+      borderColor="border.subtle"
+      _last={{ borderBottomWidth: "0" }}
+    >
+      <Square
+        size="11"
+        rounded="lg"
+        borderWidth="1px"
+        borderColor="border.subtle"
+        bg="bg.subtle"
+        colorPalette={accent}
+      >
+        <Metric fontSize="lg" color="colorPalette.fg">
           {isPull ? session.reps : formatHang(session.maxHangMs).replace(" ", "")}
-        </span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <TypePill type={session.type} />
-        </div>
-        <div className="mt-1 font-mono text-[0.7rem] text-fg-faint">
+        </Metric>
+      </Square>
+
+      <Stack gap="1" flex="1" minW="0">
+        <Box>
+          <TypeBadge type={session.type} />
+        </Box>
+        <Text fontFamily="mono" fontSize="11px" color="fg.subtle">
           {started.toLocaleTimeString(undefined, {
             hour: "2-digit",
             minute: "2-digit",
           })}
           {" · "}
           {timeAgo(started)}
-        </div>
-      </div>
-      <div className="text-right">
+        </Text>
+      </Stack>
+
+      <Stack gap="0.5" textAlign="right">
         {isPull ? (
           <>
-            <div className="font-mono text-sm text-fg">{session.reps} reps</div>
-            <div className="font-mono text-[0.7rem] text-fg-faint">
+            <Text fontFamily="mono" fontSize="sm" fontVariantNumeric="tabular-nums">
+              {session.reps} reps
+            </Text>
+            <Text fontFamily="mono" fontSize="11px" color="fg.subtle">
               {formatHang(session.hangMs)} on bar
-            </div>
+            </Text>
           </>
         ) : (
           <>
-            <div className="font-mono text-sm text-fg">
+            <Text fontFamily="mono" fontSize="sm" fontVariantNumeric="tabular-nums">
               {formatHang(session.maxHangMs)}
-            </div>
-            <div className="font-mono text-[0.7rem] text-fg-faint">best hold</div>
+            </Text>
+            <Text fontFamily="mono" fontSize="11px" color="fg.subtle">
+              best hold
+            </Text>
           </>
         )}
-      </div>
-    </div>
+      </Stack>
+
+      {actions ? <Box flexShrink="0">{actions}</Box> : null}
+    </Flex>
   );
 }

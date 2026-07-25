@@ -2,27 +2,49 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  AreaChart,
+  Card,
+  EmptyState,
+  Grid,
+  HStack,
+  Icon,
+  SegmentGroup,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
+import { Chart, useChart } from "@chakra-ui/charts";
+import {
   Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ReferenceLine,
+  AreaChart,
+  Bar,
+  BarChart,
   CartesianGrid,
   Cell,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
 } from "recharts";
-import type { Session, DailyStat } from "@/db/schema";
+import {
+  BarChart3,
+  CalendarCheck,
+  Dumbbell,
+  History,
+  Timer,
+  Waves,
+} from "lucide-react";
+import type { DailyStat, Session } from "@/db/schema";
 import { SessionRow } from "@/components/session-row";
-import { EmptyState } from "@/components/ui";
+import { SessionRowActions } from "@/components/session-row-actions";
+import { SessionForm } from "@/components/session-form";
+import { toaster } from "@/components/ui/toaster";
+import { Eyebrow, StatCard } from "@/components/shared/bits";
 import { formatHang } from "@/lib/time";
 
 const RANGES = [
-  { days: 7, label: "7D" },
-  { days: 30, label: "30D" },
-  { days: 90, label: "90D" },
+  { value: "7", label: "7D" },
+  { value: "30", label: "30D" },
+  { value: "90", label: "90D" },
 ];
 
 type ChartDatum = {
@@ -45,6 +67,11 @@ export function HistoryView({
   const [days, setDays] = useState<DailyStat[]>(initialDays);
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [loading, setLoading] = useState(false);
+  const [reload, setReload] = useState(0);
+
+  // Session editor state: null target = "add", a Session = "edit".
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Session | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +89,23 @@ export function HistoryView({
     return () => {
       cancelled = true;
     };
-  }, [range]);
+  }, [range, reload]);
+
+  const refresh = () => setReload((n) => n + 1);
+
+  function openEdit(session: Session) {
+    setEditing(session);
+    setFormOpen(true);
+  }
+  async function removeSession(id: string) {
+    const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      toaster.create({ title: "Session deleted", type: "success" });
+      refresh();
+    } else {
+      toaster.create({ title: "Couldn't delete the session", type: "error" });
+    }
+  }
 
   const chartData: ChartDatum[] = useMemo(
     () =>
@@ -82,162 +125,265 @@ export function HistoryView({
   const activeDays = chartData.filter((d) => d.reps > 0 || d.hangMin > 0).length;
   const goalLine = chartData.find((d) => d.goal > 0)?.goal ?? 0;
 
-  return (
-    <div className="space-y-4">
-      {/* range toggle + totals */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-3 font-mono text-xs text-fg-dim">
-          <span>
-            <span className="text-lime">{totalReps.toLocaleString()}</span> reps
-          </span>
-          <span className="text-fg-faint">·</span>
-          <span>
-            <span className="text-cyan">{formatHang(totalHangMs)}</span> hung
-          </span>
-          <span className="text-fg-faint">·</span>
-          <span>{activeDays} active days</span>
-        </div>
-        <div className="inline-flex overflow-hidden rounded-lg border border-line">
-          {RANGES.map((r) => (
-            <button
-              key={r.days}
-              onClick={() => setRange(r.days)}
-              className={`px-3.5 py-1.5 font-mono text-xs transition-colors ${
-                range === r.days
-                  ? "bg-lime text-ink"
-                  : "text-fg-dim hover:bg-panel-2"
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </div>
+  const repsChart = useChart({
+    data: chartData,
+    series: [{ name: "reps", color: "teal.solid" }],
+  });
+  const hangChart = useChart({
+    data: chartData,
+    series: [{ name: "hangMin", color: "cyan.solid" }],
+  });
 
-      {/* reps chart */}
-      <div className={`panel p-5 transition-opacity ${loading ? "opacity-60" : ""}`}>
-        <div className="mb-4 eyebrow">Reps per day</div>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
-              <CartesianGrid stroke="var(--color-line)" vertical={false} />
+  return (
+    <Stack gap="6">
+      {/* Range control */}
+      <HStack justify="space-between" flexWrap="wrap" gap="3">
+        <Eyebrow>Showing last {range} days</Eyebrow>
+        <SegmentGroup.Root
+          value={String(range)}
+          onValueChange={(e) => e.value && setRange(Number(e.value))}
+          size="sm"
+        >
+          <SegmentGroup.Indicator />
+          <SegmentGroup.Items items={RANGES} />
+        </SegmentGroup.Root>
+      </HStack>
+
+      {/* Totals */}
+      <Grid templateColumns={{ base: "1fr", sm: "repeat(3, 1fr)" }} gap="4">
+        <StatCard
+          label="Total reps"
+          value={totalReps.toLocaleString()}
+          icon={Dumbbell}
+          accent="teal"
+          sub={`Across the last ${range} days`}
+        />
+        <StatCard
+          label="Time hung"
+          value={formatHang(totalHangMs)}
+          icon={Timer}
+          accent="cyan"
+          sub="Total time on the bar"
+        />
+        <StatCard
+          label="Active days"
+          value={activeDays}
+          unit={activeDays === 1 ? "day" : "days"}
+          icon={CalendarCheck}
+          accent="gray"
+          sub="Days with a set or hang"
+        />
+      </Grid>
+
+      {/* Reps per day */}
+      <Card.Root bg="bg.panel">
+        <Card.Header pb="0">
+          <HStack justify="space-between">
+            <HStack gap="2" color="fg.muted">
+              <Icon as={BarChart3} boxSize="3.5" color="teal.fg" />
+              <Eyebrow>Reps per day</Eyebrow>
+            </HStack>
+            {goalLine > 0 ? (
+              <Text
+                fontFamily="mono"
+                fontSize="xs"
+                color="orange.fg"
+                fontVariantNumeric="tabular-nums"
+              >
+                goal {goalLine}
+              </Text>
+            ) : null}
+          </HStack>
+        </Card.Header>
+        <Card.Body opacity={loading ? 0.6 : 1} transition="opacity 0.2s">
+          <Chart.Root w="full" h="260px" aspectRatio="auto" chart={repsChart}>
+            <ResponsiveContainer width="100%" height={260}>
+            <BarChart
+              data={repsChart.data}
+              margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+            >
+              <CartesianGrid
+                stroke={repsChart.color("border.muted")}
+                vertical={false}
+              />
               <XAxis
-                dataKey="label"
-                tick={{ fill: "var(--color-fg-faint)", fontSize: 10, fontFamily: "var(--font-mono)" }}
-                axisLine={{ stroke: "var(--color-line)" }}
+                dataKey={repsChart.key("label")}
                 tickLine={false}
+                axisLine={false}
+                tickMargin={8}
                 interval="preserveStartEnd"
                 minTickGap={20}
+                tick={{ fontSize: 10, fill: repsChart.color("fg.muted") }}
               />
               <YAxis
-                tick={{ fill: "var(--color-fg-faint)", fontSize: 10, fontFamily: "var(--font-mono)" }}
-                axisLine={false}
                 tickLine={false}
-                width={40}
+                axisLine={false}
+                width={34}
+                tick={{ fontSize: 10, fill: repsChart.color("fg.muted") }}
               />
-              <Tooltip
-                cursor={{ fill: "var(--color-panel-2)" }}
-                content={<ChartTip unit="reps" />}
-              />
-              {goalLine > 0 && (
+              {goalLine > 0 ? (
                 <ReferenceLine
                   y={goalLine}
-                  stroke="var(--color-amber)"
+                  stroke={repsChart.color("orange.solid")}
                   strokeDasharray="4 4"
                   strokeOpacity={0.6}
                 />
-              )}
-              <Bar dataKey="reps" radius={[3, 3, 0, 0]} maxBarSize={26}>
-                {chartData.map((d) => (
+              ) : null}
+              <Tooltip
+                cursor={{ fill: repsChart.color("bg.emphasized"), opacity: 0.4 }}
+                content={<Chart.Tooltip />}
+              />
+              <Bar
+                isAnimationActive={false}
+                dataKey={repsChart.key("reps")}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={26}
+              >
+                {repsChart.data.map((d) => (
                   <Cell
                     key={d.date}
-                    fill={d.hit ? "var(--color-lime)" : "color-mix(in srgb, var(--color-lime) 40%, transparent)"}
+                    fill={repsChart.color(d.hit ? "teal.solid" : "teal.muted")}
                   />
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+            </ResponsiveContainer>
+          </Chart.Root>
+        </Card.Body>
+      </Card.Root>
 
-      {/* hang chart */}
-      <div className={`panel p-5 transition-opacity ${loading ? "opacity-60" : ""}`}>
-        <div className="mb-4 eyebrow">Hang time per day (min)</div>
-        <div className="h-44">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -18, bottom: 0 }}>
+      {/* Hang time per day */}
+      <Card.Root bg="bg.panel">
+        <Card.Header pb="0">
+          <HStack justify="space-between">
+            <HStack gap="2" color="fg.muted">
+              <Icon as={Waves} boxSize="3.5" color="cyan.fg" />
+              <Eyebrow>Hang time per day</Eyebrow>
+            </HStack>
+            <Text fontFamily="mono" fontSize="xs" color="fg.subtle">
+              minutes
+            </Text>
+          </HStack>
+        </Card.Header>
+        <Card.Body opacity={loading ? 0.6 : 1} transition="opacity 0.2s">
+          <Chart.Root w="full" h="200px" aspectRatio="auto" chart={hangChart}>
+            <ResponsiveContainer width="100%" height={200}>
+            <AreaChart
+              data={hangChart.data}
+              margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
+            >
               <defs>
-                <linearGradient id="hangFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-cyan)" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="var(--color-cyan)" stopOpacity={0} />
-                </linearGradient>
+                <Chart.Gradient
+                  id="hangFill"
+                  stops={[
+                    { offset: "0%", color: "cyan.solid", opacity: 0.5 },
+                    { offset: "100%", color: "cyan.solid", opacity: 0 },
+                  ]}
+                />
               </defs>
-              <CartesianGrid stroke="var(--color-line)" vertical={false} />
+              <CartesianGrid
+                stroke={hangChart.color("border.muted")}
+                vertical={false}
+              />
               <XAxis
-                dataKey="label"
-                tick={{ fill: "var(--color-fg-faint)", fontSize: 10, fontFamily: "var(--font-mono)" }}
-                axisLine={{ stroke: "var(--color-line)" }}
+                dataKey={hangChart.key("label")}
                 tickLine={false}
+                axisLine={false}
+                tickMargin={8}
                 interval="preserveStartEnd"
                 minTickGap={20}
+                tick={{ fontSize: 10, fill: hangChart.color("fg.muted") }}
               />
               <YAxis
-                tick={{ fill: "var(--color-fg-faint)", fontSize: 10, fontFamily: "var(--font-mono)" }}
-                axisLine={false}
                 tickLine={false}
-                width={40}
+                axisLine={false}
+                width={34}
+                tick={{ fontSize: 10, fill: hangChart.color("fg.muted") }}
               />
-              <Tooltip cursor={{ stroke: "var(--color-cyan)" }} content={<ChartTip unit="min" />} />
+              <Tooltip
+                cursor={{ stroke: hangChart.color("cyan.solid"), strokeOpacity: 0.4 }}
+                content={<Chart.Tooltip />}
+              />
               <Area
+                isAnimationActive={false}
                 type="monotone"
-                dataKey="hangMin"
-                stroke="var(--color-cyan)"
+                dataKey={hangChart.key("hangMin")}
+                stroke={hangChart.color("cyan.solid")}
                 strokeWidth={2}
                 fill="url(#hangFill)"
               />
             </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+            </ResponsiveContainer>
+          </Chart.Root>
+        </Card.Body>
+      </Card.Root>
 
-      {/* session list */}
-      <div className="panel p-5">
-        <div className="mb-2 eyebrow">All sessions</div>
-        {sessions.length === 0 ? (
-          <EmptyState
-            title="No sessions logged"
-            hint="Your recorded sets and hangs will appear here."
-          />
-        ) : (
-          <div>
-            {sessions.map((s) => (
-              <SessionRow key={s.id} session={{ ...s, startedAt: new Date(s.startedAt), endedAt: new Date(s.endedAt), createdAt: new Date(s.createdAt) }} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+      {/* All sessions */}
+      <Card.Root bg="bg.panel">
+        <Card.Header pb="0">
+          <HStack justify="space-between">
+            <HStack gap="2" color="fg.muted">
+              <Icon as={History} boxSize="3.5" color="fg.muted" />
+              <Eyebrow>All sessions</Eyebrow>
+            </HStack>
+            {sessions.length > 0 ? (
+              <Text
+                fontFamily="mono"
+                fontSize="xs"
+                color="fg.subtle"
+                fontVariantNumeric="tabular-nums"
+              >
+                {sessions.length}
+              </Text>
+            ) : null}
+          </HStack>
+        </Card.Header>
+        <Card.Body opacity={loading ? 0.6 : 1} transition="opacity 0.2s">
+          {sessions.length === 0 ? (
+            <EmptyState.Root>
+              <EmptyState.Content>
+                <EmptyState.Indicator>
+                  <Icon as={History} />
+                </EmptyState.Indicator>
+                <EmptyState.Title>No sessions logged</EmptyState.Title>
+                <EmptyState.Description>
+                  Your recorded sets and hangs will appear here as you train.
+                </EmptyState.Description>
+              </EmptyState.Content>
+            </EmptyState.Root>
+          ) : (
+            <Stack gap="0">
+              {sessions.map((s) => {
+                const hydrated: Session = {
+                  ...s,
+                  startedAt: new Date(s.startedAt),
+                  endedAt: new Date(s.endedAt),
+                  createdAt: new Date(s.createdAt),
+                };
+                return (
+                  <SessionRow
+                    key={s.id}
+                    session={hydrated}
+                    actions={
+                      <SessionRowActions
+                        onEdit={() => openEdit(hydrated)}
+                        onDelete={() => removeSession(s.id)}
+                      />
+                    }
+                  />
+                );
+              })}
+            </Stack>
+          )}
+        </Card.Body>
+      </Card.Root>
 
-function ChartTip({
-  active,
-  payload,
-  label,
-  unit,
-}: {
-  active?: boolean;
-  payload?: { value: number }[];
-  label?: string;
-  unit: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-lg border border-line bg-ink px-3 py-2 font-mono text-xs shadow-xl">
-      <div className="text-fg-faint">{label}</div>
-      <div className="mt-0.5 text-fg">
-        <span className="text-lime">{payload[0].value}</span> {unit}
-      </div>
-    </div>
+      <SessionForm
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        session={editing}
+        onSaved={refresh}
+      />
+    </Stack>
   );
 }

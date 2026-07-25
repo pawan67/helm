@@ -1,13 +1,15 @@
 "use client";
 
+import { Badge, Box, Card, HStack, Icon, Stack, Text } from "@chakra-ui/react";
+import { Radar } from "lucide-react";
 import type { DetectionThresholds } from "@/db/schema";
 import type { DeviceState } from "@/lib/live-types";
+import { Eyebrow, Metric } from "@/components/shared/bits";
 
 /**
  * Vertical distance instrument. Top = close to the sensor (top of a pull-up),
  * bottom = far / off the bar. Renders the rep zone and hang zone as bands, plus
- * a live marker at the current smoothed reading. This is the signature visual:
- * it literally shows the sensor beam and where your head is in it.
+ * a live marker at the current smoothed reading.
  */
 export function DistanceGauge({
   distanceMm,
@@ -19,87 +21,194 @@ export function DistanceGauge({
   thresholds: DetectionThresholds;
 }) {
   const { presenceMaxMm, repNearMm } = thresholds;
-  // Map a distance to a 0..100 position from the top.
+
   const toPct = (mm: number) =>
     Math.max(0, Math.min(100, (mm / presenceMaxMm) * 100));
 
-  const repZoneEnd = toPct(repNearMm); // rep zone: top .. repNear
+  const repZoneEnd = toPct(repNearMm);
   const hasReading = distanceMm != null && distanceMm <= presenceMaxMm;
   const markerPct = distanceMm != null ? toPct(distanceMm) : 100;
-  const inRepZone = state === "rep_up" || (hasReading && distanceMm! < repNearMm);
+  const inRepZone =
+    state === "rep_up" || (hasReading && distanceMm! < repNearMm);
+  const active = state === "hanging" || state === "rep_up";
+
+  const readoutColor = inRepZone ? "teal.fg" : hasReading ? "cyan.fg" : "fg.subtle";
+  const markerColor = inRepZone ? "teal.solid" : "cyan.solid";
 
   return (
-    <div className="panel relative flex h-full flex-col p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="eyebrow">Sensor</div>
-        <div className="font-mono text-[0.62rem] text-fg-faint">VL53L0X</div>
-      </div>
-
-      <div className="relative flex-1">
-        {/* Track */}
-        <div className="relative mx-auto h-full w-16 overflow-hidden rounded-xl border border-line bg-ink-2">
-          {/* rep zone band (top) */}
-          <div
-            className="absolute inset-x-0 top-0 bg-gradient-to-b from-lime/25 to-transparent"
-            style={{ height: `${repZoneEnd}%` }}
-          />
-          {/* hang zone band */}
-          <div
-            className="absolute inset-x-0 bg-gradient-to-b from-cyan/10 to-transparent"
-            style={{ top: `${repZoneEnd}%`, bottom: 0 }}
-          />
-
-          {/* tick marks */}
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute right-0 h-px w-2 bg-line-bright"
-              style={{ top: `${(i / 8) * 100}%` }}
+    <Card.Root bg="bg.panel" h="full">
+      <Card.Header pb="0">
+        <HStack justify="space-between">
+          <HStack gap="2">
+            <Icon
+              as={Radar}
+              boxSize="3.5"
+              color={active ? "teal.fg" : "fg.subtle"}
             />
-          ))}
+            <Eyebrow>Sensor</Eyebrow>
+          </HStack>
+          <Badge
+            variant="outline"
+            size="sm"
+            fontFamily="mono"
+            letterSpacing="wider"
+            color="fg.subtle"
+          >
+            VL53L0X
+          </Badge>
+        </HStack>
+      </Card.Header>
 
-          {/* rep threshold line */}
-          <div
-            className="absolute inset-x-0 z-10 border-t border-dashed border-lime/70"
+      <Card.Body gap="4">
+        {/* Track + scale */}
+        <Box position="relative" flex="1" minH="15rem">
+          <Text
+            position="absolute"
+            left="0"
+            top="0"
+            fontSize="9px"
+            letterSpacing="0.2em"
+            textTransform="uppercase"
+            color="fg.subtle"
+          >
+            near
+          </Text>
+          <Text
+            position="absolute"
+            left="0"
+            bottom="0"
+            fontSize="9px"
+            letterSpacing="0.2em"
+            textTransform="uppercase"
+            color="fg.subtle"
+          >
+            far
+          </Text>
+          <Text
+            position="absolute"
+            left="0"
+            zIndex="3"
+            transform="translateY(-50%)"
+            fontSize="9px"
+            letterSpacing="0.2em"
+            textTransform="uppercase"
+            color="teal.fg"
             style={{ top: `${repZoneEnd}%` }}
-          />
+          >
+            rep
+          </Text>
 
-          {/* moving scan sweep when active */}
-          {(state === "hanging" || state === "rep_up") && (
-            <div className="absolute inset-x-0 top-0 h-8 animate-sweep bg-gradient-to-b from-transparent via-lime/20 to-transparent" />
-          )}
+          {/* beam slot */}
+          <Box
+            position="relative"
+            mx="auto"
+            h="full"
+            w="14"
+            overflow="hidden"
+            rounded="xl"
+            borderWidth="1px"
+            borderColor="border.subtle"
+            bg="bg"
+          >
+            {/* rep zone band */}
+            <Box
+              position="absolute"
+              insetX="0"
+              top="0"
+              bgGradient="to-b"
+              gradientFrom="teal.solid/25"
+              gradientTo="transparent"
+              style={{ height: `${repZoneEnd}%` }}
+            />
+            {/* hang zone band */}
+            <Box
+              position="absolute"
+              insetX="0"
+              bottom="0"
+              bgGradient="to-b"
+              gradientFrom="cyan.solid/12"
+              gradientTo="transparent"
+              style={{ top: `${repZoneEnd}%` }}
+            />
 
-          {/* live marker */}
-          {hasReading && (
-            <div
-              className="absolute inset-x-0 z-20 transition-[top] duration-150 ease-out"
-              style={{ top: `calc(${markerPct}% - 2px)` }}
-            >
-              <div
-                className={`h-1 w-full ${inRepZone ? "bg-lime shadow-[0_0_14px] shadow-lime/70" : "bg-cyan shadow-[0_0_12px] shadow-cyan/60"}`}
+            {/* tick marks */}
+            {Array.from({ length: 9 }).map((_, i) => (
+              <Box
+                key={i}
+                position="absolute"
+                right="0"
+                h="1px"
+                w={i % 4 === 0 ? "3" : "2"}
+                bg="border.emphasized"
+                style={{ top: `${(i / 8) * 100}%` }}
               />
-            </div>
-          )}
-        </div>
+            ))}
 
-        {/* rep zone label */}
-        <div
-          className="pointer-events-none absolute left-0 font-mono text-[0.55rem] uppercase tracking-widest text-lime/70"
-          style={{ top: 2 }}
-        >
-          rep
-        </div>
-      </div>
+            {/* dashed rep threshold line */}
+            <Box
+              position="absolute"
+              insetX="0"
+              zIndex="1"
+              borderTopWidth="1px"
+              borderStyle="dashed"
+              borderColor="teal.solid/70"
+              style={{ top: `${repZoneEnd}%` }}
+            />
 
-      {/* readout */}
-      <div className="mt-3 text-center">
-        <div
-          className={`font-mono text-2xl leading-none tnum ${inRepZone ? "text-lime" : hasReading ? "text-cyan" : "text-fg-faint"}`}
+            {/* scan sweep while active */}
+            {active && (
+              <Box
+                position="absolute"
+                insetX="0"
+                h="10"
+                bgGradient="to-b"
+                gradientFrom="transparent"
+                gradientVia="teal.solid/25"
+                gradientTo="transparent"
+                animation="ih-sweep 2.4s linear infinite"
+              />
+            )}
+
+            {/* live marker */}
+            {hasReading && (
+              <Box
+                position="absolute"
+                insetX="0"
+                zIndex="2"
+                transition="top 0.15s ease-out"
+                style={{ top: `calc(${markerPct}% - 1px)` }}
+              >
+                <Box h="0.5" w="full" bg={markerColor} />
+                <Box
+                  position="absolute"
+                  left="-1"
+                  top="50%"
+                  boxSize="2"
+                  transform="translateY(-50%)"
+                  rounded="full"
+                  bg={markerColor}
+                />
+              </Box>
+            )}
+          </Box>
+        </Box>
+
+        {/* digital readout */}
+        <Box
+          rounded="lg"
+          bg="bg.subtle"
+          borderWidth="1px"
+          borderColor="border.subtle"
+          px="3"
+          py="2.5"
+          textAlign="center"
         >
-          {distanceMm != null ? distanceMm : "—"}
-        </div>
-        <div className="eyebrow mt-1 !text-[0.55rem]">mm to head</div>
-      </div>
-    </div>
+          <Metric fontSize="2xl" color={readoutColor}>
+            {distanceMm != null ? distanceMm : "—"}
+          </Metric>
+          <Eyebrow mt="1.5">mm to head</Eyebrow>
+        </Box>
+      </Card.Body>
+    </Card.Root>
   );
 }

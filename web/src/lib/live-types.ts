@@ -14,6 +14,10 @@ export type LiveState = {
   sessionStartedAt: number | null;
   rssi: number | null;
   fwVersion: string | null;
+  /** Latest ambient temperature (°C) from the on-bar DHT11, null until first read. */
+  tempC: number | null;
+  /** Latest relative humidity (%), null until first read. */
+  humidity: number | null;
   updatedAt: number;
 };
 
@@ -34,6 +38,7 @@ export type LiveEvent =
       brokenRecords: string[];
     }
   | { kind: "device_status"; online: boolean; at: number }
+  | { kind: "env"; tempC: number | null; humidity: number | null; at: number }
   | { kind: "heartbeat" };
 
 export const RECORD_LABELS: Record<string, string> = {

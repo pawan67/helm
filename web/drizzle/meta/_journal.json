@@ -8,6 +8,13 @@
       "when": 1784869983376,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784956994098,
+      "tag": "0001_spicy_the_stranger",
+      "breakpoints": true
     }
   ]
 }
