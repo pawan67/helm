@@ -11,6 +11,7 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
+import type { IrClimateConfig, IrClimateState } from "../lib/ir-climate";
 
 /** A session is classified once it ends, based on whether any reps happened. */
 export const sessionTypeEnum = pgEnum("session_type", ["pullup_set", "dead_hang"]);
@@ -134,6 +135,61 @@ export const settings = pgTable("settings", {
   tempLoggingEnabled: boolean("temp_logging_enabled").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+//  IR remote (infrared blaster on the bar node)
+// ---------------------------------------------------------------------------
+
+/** A climate device holds optimistic state; a generic device is a set of buttons. */
+export const irDeviceKindEnum = pgEnum("ir_device_kind", ["climate", "generic"]);
+
+/**
+ * An IR-controllable device. `config`/`state` are only populated for climate
+ * devices; generic devices carry their commands in `ir_buttons`.
+ */
+export const irDevices = pgTable("ir_devices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  kind: irDeviceKindEnum("kind").notNull(),
+  /** lucide-react icon key rendered in the console (e.g. "air-vent", "fan"). */
+  icon: text("icon").notNull().default("tv"),
+  /** Protocol family: "PANASONIC_AC" for climate, "" for generic (per-button). */
+  protocol: text("protocol").notNull().default(""),
+  /** Climate capabilities (model, temp range, modes, fans). Null for generic. */
+  config: jsonb("config").$type<IrClimateConfig | null>(),
+  /** Optimistic, last-commanded climate state. Null for generic. */
+  state: jsonb("state").$type<IrClimateState | null>(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One IR command (a labelled button) belonging to a generic device. */
+export const irButtons = pgTable(
+  "ir_buttons",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    deviceId: uuid("device_id")
+      .notNull()
+      .references(() => irDevices.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    icon: text("icon").notNull().default("dot"),
+    /** IRremoteESP8266 protocol name, e.g. "NEC", "SAMSUNG". */
+    protocol: text("protocol").notNull().default("NEC"),
+    /** Hex code (no 0x), parsed on-device with strtoull(code, 16). */
+    code: text("code").notNull(),
+    bits: integer("bits").notNull().default(32),
+    /** Extra send repeats (0 = send once). */
+    repeats: integer("repeats").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => [index("ir_buttons_device_idx").on(t.deviceId)],
+);
+
+export type IrDevice = typeof irDevices.$inferSelect;
+export type NewIrDevice = typeof irDevices.$inferInsert;
+export type IrButton = typeof irButtons.$inferSelect;
+export type NewIrButton = typeof irButtons.$inferInsert;
 
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;

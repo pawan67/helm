@@ -32,9 +32,13 @@
 #include <ArduinoJson.h>
 #include <Adafruit_VL53L0X.h>
 #include <DHT.h>
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+#include <IRutils.h>
+#include <ir_Panasonic.h>
 #include "config.h"
 
-#define FW_VERSION "1.1.0"
+#define FW_VERSION "1.2.0"
 
 // ---- Ambient sensor (DHT11) ----
 #define DHT_PIN 25
@@ -43,6 +47,20 @@ const unsigned long ENV_INTERVAL_MS = 60000;  // DHT11 maxes ~1Hz; sample once a
 
 // ---- Passive buzzer ----
 #define BUZZER_PIN 26
+
+// ---- IR blaster ----
+// GPIO27 -> 220Ω -> 2N2222 base; IR LED string on the collector off the 5V rail;
+// 470µF across the LED supply to buffer the pulse current. Transmit-only.
+#define IR_LED_PIN 27
+IRsend irsend(IR_LED_PIN);            // generic protocols (NEC, etc.)
+IRPanasonicAc panasonicAc(IR_LED_PIN);  // Panasonic AC state frames
+
+// A tiny FIFO of pending IR command JSON strings. Commands are transmitted only
+// while IDLE so an IR frame (a Panasonic frame is ~130-200ms) never stalls rep
+// detection. You are never firing the AC mid-set anyway.
+#define IR_QUEUE_LEN 8
+String irQueue[IR_QUEUE_LEN];
+int irQHead = 0, irQTail = 0, irQCount = 0;
 
 // ---- Detection thresholds (defaults; overridden by retained MQTT config) ----
 struct Thresholds {
@@ -117,7 +135,7 @@ WiFiClient wifiClient;
 PubSubClient mqtt(wifiClient);
 Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 
-String topicTelemetry, topicEvent, topicStatus, topicConfig, topicEnv;
+String topicTelemetry, topicEvent, topicStatus, topicConfig, topicEnv, topicIrCmd, topicIrAck;
 
 unsigned long lastTelemetry = 0;
 const unsigned long TELEMETRY_INTERVAL_MS = 80;
@@ -300,9 +318,129 @@ void readAndPublishEnv() {
 }
 
 // ------------------------------------------------------------------
+//  IR blaster — transmit commands the server publishes on ir/cmd
+// ------------------------------------------------------------------
+void enqueueIr(const String& json) {
+  if (irQCount >= IR_QUEUE_LEN) {  // full: drop the oldest
+    irQHead = (irQHead + 1) % IR_QUEUE_LEN;
+    irQCount--;
+  }
+  irQueue[irQTail] = json;
+  irQTail = (irQTail + 1) % IR_QUEUE_LEN;
+  irQCount++;
+}
+
+bool dequeueIr(String& out) {
+  if (irQCount == 0) return false;
+  out = irQueue[irQHead];
+  irQHead = (irQHead + 1) % IR_QUEUE_LEN;
+  irQCount--;
+  return true;
+}
+
+void publishIrAck(const char* kind) {
+  JsonDocument doc;
+  doc["k"] = DEVICE_KEY;
+  doc["ok"] = true;
+  doc["kind"] = kind;
+  char buf[96];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  mqtt.publish(topicIrAck.c_str(), (const uint8_t*)buf, n, false);
+}
+
+panasonic_ac_remote_model_t panasonicModel(const char* m) {
+  if (!strcmp(m, "NKE")) return kPanasonicNke;
+  if (!strcmp(m, "LKE")) return kPanasonicLke;
+  if (!strcmp(m, "JKE")) return kPanasonicJke;
+  if (!strcmp(m, "CKP")) return kPanasonicCkp;
+  if (!strcmp(m, "RKR")) return kPanasonicRkr;
+  return kPanasonicDke;  // default
+}
+
+uint8_t panasonicMode(const char* m) {
+  if (!strcmp(m, "auto")) return kPanasonicAcAuto;
+  if (!strcmp(m, "heat")) return kPanasonicAcHeat;
+  if (!strcmp(m, "dry")) return kPanasonicAcDry;
+  if (!strcmp(m, "fan")) return kPanasonicAcFan;
+  return kPanasonicAcCool;  // default
+}
+
+uint8_t panasonicFan(const char* f) {
+  if (!strcmp(f, "min")) return kPanasonicAcFanMin;
+  if (!strcmp(f, "low")) return kPanasonicAcFanLow;
+  if (!strcmp(f, "med")) return kPanasonicAcFanMed;
+  if (!strcmp(f, "high")) return kPanasonicAcFanHigh;
+  if (!strcmp(f, "max")) return kPanasonicAcFanMax;
+  return kPanasonicAcFanAuto;  // default
+}
+
+uint8_t panasonicSwing(const char* s) {
+  if (!strcmp(s, "highest")) return kPanasonicAcSwingVHighest;
+  if (!strcmp(s, "high")) return kPanasonicAcSwingVHigh;
+  if (!strcmp(s, "middle")) return kPanasonicAcSwingVMiddle;
+  if (!strcmp(s, "low")) return kPanasonicAcSwingVLow;
+  if (!strcmp(s, "lowest")) return kPanasonicAcSwingVLowest;
+  return kPanasonicAcSwingVAuto;  // default
+}
+
+void sendClimate(JsonDocument& doc) {
+  const char* model = doc["model"] | "DKE";
+  bool power = doc["power"] | false;
+  const char* mode = doc["mode"] | "cool";
+  int tempC = doc["tempC"] | 24;
+  const char* fan = doc["fan"] | "auto";
+  const char* swing = doc["swing"] | "auto";
+
+  panasonicAc.setModel(panasonicModel(model));
+  panasonicAc.setPower(power);
+  panasonicAc.setMode(panasonicMode(mode));
+  panasonicAc.setTemp((uint8_t)tempC);
+  panasonicAc.setFan(panasonicFan(fan));
+  panasonicAc.setSwingVertical(panasonicSwing(swing));
+  panasonicAc.send();
+  Serial.printf("[ir] climate %s power=%d %s %dC fan=%s\n", model, power, mode, tempC, fan);
+}
+
+void sendButton(JsonDocument& doc) {
+  const char* protocol = doc["protocol"] | "NEC";
+  const char* codeStr = doc["code"] | "0";
+  uint16_t bits = doc["bits"] | 32;
+  uint16_t repeats = doc["repeats"] | 0;
+  uint64_t code = strtoull(codeStr, nullptr, 16);
+
+  decode_type_t proto = strToDecodeType(protocol);
+  if (proto == decode_type_t::UNKNOWN) proto = decode_type_t::NEC;
+  bool ok = irsend.send(proto, code, bits, repeats);
+  Serial.printf("[ir] button %s 0x%llX bits=%d ok=%d\n", protocol, (unsigned long long)code, bits, ok);
+}
+
+// Parse and transmit one queued IR command, then ack the server.
+void sendIrCmd(const String& json) {
+  JsonDocument doc;
+  if (deserializeJson(doc, json)) {
+    Serial.println("[ir] bad command JSON");
+    return;
+  }
+  const char* t = doc["t"] | "";
+  if (!strcmp(t, "climate")) sendClimate(doc);
+  else if (!strcmp(t, "button")) sendButton(doc);
+  else { Serial.printf("[ir] unknown t=%s\n", t); return; }
+  publishIrAck(t);
+}
+
+// ------------------------------------------------------------------
 //  Config (retained) from server
 // ------------------------------------------------------------------
 void onMessage(char* topic, byte* payload, unsigned int len) {
+  // IR commands arrive on their own topic; queue them for IDLE transmission.
+  if (String(topic) == topicIrCmd) {
+    char buf[256];
+    unsigned int n = len < sizeof(buf) - 1 ? len : sizeof(buf) - 1;
+    memcpy(buf, payload, n);
+    buf[n] = 0;
+    enqueueIr(String(buf));
+    return;
+  }
   if (String(topic) != topicConfig) return;
   JsonDocument doc;
   if (deserializeJson(doc, payload, len)) return;
@@ -429,6 +567,8 @@ void setupTopics() {
   topicStatus = base + "status";
   topicConfig = base + "config";
   topicEnv = base + "env";
+  topicIrCmd = base + "ir/cmd";
+  topicIrAck = base + "ir/ack";
 }
 
 void connectWifi() {
@@ -455,6 +595,7 @@ void connectMqtt() {
     if (ok) {
       Serial.println(" connected");
       mqtt.subscribe(topicConfig.c_str(), 1);
+      mqtt.subscribe(topicIrCmd.c_str(), 1);
       publishStatus(true);
     } else {
       Serial.printf(" failed rc=%d, retry in 3s\n", mqtt.state());
@@ -486,6 +627,10 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
   noTone(BUZZER_PIN);
 
+  irsend.begin();
+  panasonicAc.begin();
+  Serial.println("[ir] blaster ready on GPIO27");
+
   setupTopics();
   connectWifi();
 
@@ -515,6 +660,13 @@ void loop() {
     readAndPublishEnv();
     lastEnv = now;
     envPrimed = true;
+  }
+
+  // Transmit one queued IR command while idle (an IR frame briefly blocks the
+  // loop, so we never do it mid-session).
+  if (state == IDLE && irQCount > 0) {
+    String cmd;
+    if (dequeueIr(cmd)) sendIrCmd(cmd);
   }
 
   // Stream raw telemetry (throttled, or immediately on state/large change).

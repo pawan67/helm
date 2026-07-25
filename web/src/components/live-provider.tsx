@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LiveEvent, LiveState } from "@/lib/live-types";
+import type { IrClimateState } from "@/lib/ir-climate";
 
 type SessionEnd = Extract<LiveEvent, { kind: "session_end" }>;
 type RepEvent = Extract<LiveEvent, { kind: "rep" }>;
@@ -22,6 +23,10 @@ type LiveContextValue = {
   /** The most recent finished session, for the summary overlay. */
   lastSessionEnd: SessionEnd | null;
   clearSessionEnd: () => void;
+  /** Optimistic climate state per IR device (from the console or Home Assistant). */
+  irClimate: Record<string, IrClimateState>;
+  /** Monotonic counter that ticks each time the device confirms an IR send. */
+  irAckTick: number;
 };
 
 const defaultState: LiveState = {
@@ -46,6 +51,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [repTick, setRepTick] = useState(0);
   const [lastRep, setLastRep] = useState<RepEvent | null>(null);
   const [lastSessionEnd, setLastSessionEnd] = useState<SessionEnd | null>(null);
+  const [irClimate, setIrClimate] = useState<Record<string, IrClimateState>>({});
+  const [irAckTick, setIrAckTick] = useState(0);
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -116,6 +123,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
             deviceOnline: true,
           }));
           break;
+        case "ir_state":
+          setIrClimate((m) => ({ ...m, [ev.deviceId]: ev.state }));
+          break;
+        case "ir_ack":
+          setIrAckTick((n) => n + 1);
+          break;
         default:
           break;
       }
@@ -136,6 +149,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         lastRep,
         lastSessionEnd,
         clearSessionEnd: () => setLastSessionEnd(null),
+        irClimate,
+        irAckTick,
       }}
     >
       {children}

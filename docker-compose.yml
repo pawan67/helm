@@ -44,6 +44,8 @@ services:
       DEVICE_ID: ${DEVICE_ID:-bar-01}
       DEVICE_KEY: ${DEVICE_KEY}
       APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+      HA_DISCOVERY_ENABLED: ${HA_DISCOVERY_ENABLED:-true}
+      HA_DISCOVERY_PREFIX: ${HA_DISCOVERY_PREFIX:-homeassistant}
     ports:
       # Dokploy points your domain at this port.
       - "3000:3000"
