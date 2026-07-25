@@ -158,6 +158,28 @@ async function main() {
   });
   console.log(`mock-device connected to ${MQTT_URL} as ${DEVICE_ID}`);
 
+  // Act like the bar node's IR blaster: log each command and echo an ack, so the
+  // /remote page can be exercised end-to-end without hardware.
+  client.subscribe(`${base}/ir/cmd`, { qos: 1 });
+  client.on("message", (topic, buf) => {
+    if (topic !== `${base}/ir/cmd`) return;
+    try {
+      const cmd = JSON.parse(buf.toString());
+      if (cmd.t === "climate") {
+        console.log(
+          `↯ IR climate → ${cmd.model} power=${cmd.power} ${cmd.mode} ${cmd.tempC}°C fan=${cmd.fan}`,
+        );
+      } else if (cmd.t === "button") {
+        console.log(`↯ IR button → ${cmd.protocol} 0x${cmd.code} (${cmd.bits}b)`);
+      } else {
+        console.log(`↯ IR ${cmd.t ?? "?"}`);
+      }
+      pub(`${base}/ir/ack`, { ok: true, kind: cmd.t });
+    } catch {
+      /* ignore malformed cmd */
+    }
+  });
+
   const [mode, arg] = process.argv.slice(2);
 
   publishEnv(); // one reading up front so the live temp shows immediately

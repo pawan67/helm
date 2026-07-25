@@ -15,6 +15,13 @@
       "when": 1784956994098,
       "tag": "0001_spicy_the_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784964666495,
+      "tag": "0002_typical_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

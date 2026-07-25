@@ -2,9 +2,9 @@
 
 Arduino sketch for the HELM **bar node**: it reads the VL53L0X to detect reps and
 hang time, reads a DHT11 for room temperature and humidity, drives a passive buzzer,
-and streams everything to the server over MQTT. The detection logic mirrors
-`web/src/lib/detection.ts` exactly, so the TypeScript unit tests also validate the
-on-device algorithm.
+**blasts IR to control an AC / fan / TV**, and streams everything to the server over
+MQTT. The detection logic mirrors `web/src/lib/detection.ts` exactly, so the
+TypeScript unit tests also validate the on-device algorithm.
 
 ## Hardware
 
@@ -19,6 +19,23 @@ on-device algorithm.
 | DHT11 DATA     | GPIO25 (10k pull-up to 3V3 if bare) |
 | Buzzer +       | GPIO26 (passive piezo) |
 | Buzzer −       | GND         |
+| IR LED driver  | GPIO27      |
+
+### IR blaster wiring (2N2222 + IR LEDs + 470µF)
+
+The ESP32 can't drive a bright IR LED string directly, so a transistor switches it:
+
+```
+GPIO27 ──[220Ω]──► 2N2222 base
+5V ──► IR LED(s) ──[current-limit R]──► 2N2222 collector
+2N2222 emitter ──► GND
+470µF electrolytic across the 5V/GND LED supply (buffers the pulse current)
+```
+
+- Put the LEDs on the **5V** rail (VIN/5V pin), not 3V3 — more range.
+- Size the current-limit resistor for your LED count (e.g. ~22–47Ω for one or two
+  LEDs at 5V); a single 470µF cap across the supply smooths the burst draw.
+- Point the IR LEDs at the AC / fan you want to control (line-of-sight).
 
 Mount the VL53L0X on the wall **10 cm above the bar**, centered, pointing
 **outward** toward your body. When you hang, your head reads far/low in the beam;
@@ -33,6 +50,7 @@ at the top of a pull-up your head rises close to the sensor.
    - **PubSubClient** (Nick O'Leary)
    - **ArduinoJson** (v7.x)
    - **DHT sensor library** (Adafruit) + **Adafruit Unified Sensor**
+   - **IRremoteESP8266** (crankyoldgit — works on ESP32; drives the IR blaster)
 3. In `firmware/helm/`, copy `config.example.h` → `config.h` and fill in your
    WiFi + MQTT details. `config.h` is gitignored.
 4. Open `helm.ino`, select your ESP32 board + port, and upload.
@@ -53,6 +71,12 @@ at the top of a pull-up your head rises close to the sensor.
   values arrive instantly — **no reflashing needed**.
 - Chirps the buzzer on each counted rep and plays a two-tone jingle on session
   end, both gated by the Settings sound toggles.
+- Subscribes to `pullup/<DEVICE_ID>/ir/cmd` and transmits the IR frame — a
+  Panasonic AC state frame (`{"t":"climate",…}`) or a generic protocol code
+  (`{"t":"button","protocol":"NEC","code":"00CF8976","bits":32}`). Commands are
+  queued and sent only while **idle**, so an IR burst never disturbs rep timing.
+  It acks each send on `pullup/<DEVICE_ID>/ir/ack`. Devices/buttons are managed
+  on the web **Remote** page; nothing is hard-coded in firmware.
 
 ## Calibration
 

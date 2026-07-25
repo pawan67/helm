@@ -2,6 +2,7 @@
  * Shared types for the live data stream. Kept free of any Node.js imports so
  * both server (live-bus, mqtt) and client (LiveProvider) can import them.
  */
+import type { IrClimateState } from "./ir-climate";
 
 export type DeviceState = "idle" | "hanging" | "rep_up" | "offline";
 
@@ -39,6 +40,10 @@ export type LiveEvent =
     }
   | { kind: "device_status"; online: boolean; at: number }
   | { kind: "env"; tempC: number | null; humidity: number | null; at: number }
+  /** A climate device's optimistic state changed (from the console or HA). */
+  | { kind: "ir_state"; deviceId: string; state: IrClimateState; at: number }
+  /** The device confirmed it transmitted an IR command. */
+  | { kind: "ir_ack"; deviceId: string | null; ok: boolean; at: number }
   | { kind: "heartbeat" };
 
 export const RECORD_LABELS: Record<string, string> = {

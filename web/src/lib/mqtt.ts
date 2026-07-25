@@ -6,6 +6,32 @@ import {
   type DeviceState,
 } from "./live-bus";
 import { persistSession, persistEnvReading, getSettings } from "@/db/persist";
+import {
+  getIrDevices,
+  getIrButton,
+  setIrClimateState,
+  ensureIrSeed,
+  type IrDeviceWithButtons,
+} from "@/db/ir";
+import {
+  buildClimateCmd,
+  buildButtonCmd,
+  normalizeClimate,
+  patchFromHaMode,
+  DEFAULT_PANASONIC_CONFIG,
+  type ClimatePatch,
+  type IrClimateState,
+} from "./ir-climate";
+import {
+  buildClimateDiscovery,
+  buildButtonDiscovery,
+  climateConfigTopic,
+  buttonConfigTopic,
+  climateStateMessages,
+  parseHaCommandTopic,
+  HA_COMMAND_FILTERS,
+} from "./ha-discovery";
+import type { IrDevice, IrButton } from "@/db/schema";
 
 /**
  * Long-lived MQTT subscriber. Started once from instrumentation.ts. Bridges the
@@ -22,6 +48,10 @@ function topics(deviceId: string) {
     status: `pullup/${deviceId}/status`,
     config: `pullup/${deviceId}/config`,
     env: `pullup/${deviceId}/env`,
+    /** Server → device: one-shot IR command to transmit. */
+    irCmd: `pullup/${deviceId}/ir/cmd`,
+    /** Device → server: confirmation that an IR frame was sent. */
+    irAck: `pullup/${deviceId}/ir/ack`,
   };
 }
 
@@ -40,6 +70,7 @@ type EventMsg =
     };
 type StatusMsg = { k?: string; online: boolean; fw?: string; rssi?: number };
 type EnvMsg = { k?: string; tempC?: number; humidity?: number };
+type IrAckMsg = { k?: string; ok?: boolean; kind?: string };
 
 /** Verify the device shared-secret when present (defense in depth). */
 function keyOk(k: string | undefined): boolean {
@@ -65,16 +96,32 @@ export function startMqtt(): MqttClient {
 
   client.on("connect", async () => {
     console.log(`[mqtt] connected to ${env.mqttUrl}`);
-    client.subscribe([t.telemetry, t.event, t.status, t.env], { qos: 1 }, (err) => {
+    const subs = [t.telemetry, t.event, t.status, t.env, t.irAck];
+    if (env.haDiscoveryEnabled) subs.push(...HA_COMMAND_FILTERS);
+    client.subscribe(subs, { qos: 1 }, (err) => {
       if (err) console.error("[mqtt] subscribe error:", err);
     });
     await publishConfig();
+    try {
+      await ensureIrSeed(); // create the default IR devices on first run
+    } catch (err) {
+      console.error("[mqtt] ensureIrSeed failed:", err);
+    }
+    await publishHaDiscovery();
   });
 
   client.on("error", (err) => console.error("[mqtt] error:", err.message));
   client.on("reconnect", () => console.log("[mqtt] reconnecting…"));
 
   client.on("message", (topic, buf) => {
+    // Home Assistant command topics carry plain-text payloads (e.g. "cool",
+    // "24", "PRESS"), so they must be handled before the JSON parse below.
+    const ha = parseHaCommandTopic(topic);
+    if (ha) {
+      void handleHaCommand(ha, buf.toString().trim());
+      return;
+    }
+
     let payload: unknown;
     try {
       payload = JSON.parse(buf.toString());
@@ -87,6 +134,7 @@ export function startMqtt(): MqttClient {
     else if (topic === t.event) void handleEvent(deviceId, payload as EventMsg);
     else if (topic === t.status) handleStatus(payload as StatusMsg);
     else if (topic === t.env) void handleEnv(deviceId, payload as EnvMsg);
+    else if (topic === t.irAck) handleIrAck(payload as IrAckMsg);
   });
 
   return client;
@@ -242,3 +290,139 @@ export async function publishConfig() {
     console.error("[mqtt] publishConfig failed:", err);
   }
 }
+
+// ---------------------------------------------------------------------------
+//  IR remote — publish commands down to the bar node, bridge acks + Home
+//  Assistant. The device is a dumb transmitter; the server owns state.
+// ---------------------------------------------------------------------------
+
+/** Device confirmed it transmitted an IR frame — pulse the console. */
+function handleIrAck(msg: IrAckMsg) {
+  if (!keyOk(msg.k)) return;
+  publishLive({ kind: "ir_ack", deviceId: null, ok: msg.ok !== false, at: Date.now() });
+}
+
+/** Publish one IR command to the device (QoS 1, not retained). */
+function publishIrCmd(payload: object): boolean {
+  const client = globalForMqtt.__mqttClient;
+  if (!client || !client.connected) return false;
+  const body = JSON.stringify({ k: env.deviceKey || undefined, ...payload });
+  client.publish(topics(env.deviceId).irCmd, body, { qos: 1, retain: false });
+  return true;
+}
+
+/**
+ * Apply a climate patch: persist the optimistic state, transmit the AC frame,
+ * and broadcast the new state to the console (live bus) and Home Assistant.
+ * Shared by the API route and the HA command handler. Returns the new state.
+ */
+export async function applyClimateAndBroadcast(
+  deviceId: string,
+  patch: ClimatePatch,
+): Promise<IrClimateState | null> {
+  const result = await setIrClimateState(deviceId, patch);
+  if (!result) return null;
+  const { device, state } = result;
+  const config = device.config ?? DEFAULT_PANASONIC_CONFIG;
+
+  publishIrCmd(buildClimateCmd(state, config));
+  publishLive({ kind: "ir_state", deviceId, state, at: Date.now() });
+  publishClimateStateToHa(deviceId, state);
+  return state;
+}
+
+/** Fire a generic button by id. Returns false if the button is unknown. */
+export async function fireIrButton(buttonId: string): Promise<boolean> {
+  const button = await getIrButton(buttonId);
+  if (!button) return false;
+  return publishIrCmd(buildButtonCmd(button));
+}
+
+/** Handle a command that arrived from Home Assistant on a server-owned topic. */
+async function handleHaCommand(
+  ha: ReturnType<typeof parseHaCommandTopic>,
+  payload: string,
+): Promise<void> {
+  if (!ha) return;
+  try {
+    if (ha.kind === "fire") {
+      await fireIrButton(ha.buttonId);
+      return;
+    }
+    let patch: ClimatePatch;
+    if (ha.kind === "mode") patch = patchFromHaMode(payload);
+    else if (ha.kind === "temp") patch = { tempC: Number(payload) };
+    else patch = { fan: payload as IrClimateState["fan"] };
+    await applyClimateAndBroadcast(ha.deviceId, patch);
+  } catch (err) {
+    console.error("[mqtt] HA command failed:", err);
+  }
+}
+
+/** Publish the retained HA state messages for a climate device. */
+function publishClimateStateToHa(deviceId: string, state: IrClimateState) {
+  if (!env.haDiscoveryEnabled) return;
+  const client = globalForMqtt.__mqttClient;
+  if (!client || !client.connected) return;
+  for (const m of climateStateMessages(deviceId, state)) {
+    client.publish(m.topic, m.payload, { qos: 1, retain: true });
+  }
+}
+
+/**
+ * Publish Home Assistant MQTT discovery for the whole IR catalog (retained), so
+ * HA auto-creates a climate card per AC and a button per generic command. Also
+ * seeds each climate device's current state. Called on connect and whenever the
+ * catalog changes.
+ */
+export async function publishHaDiscovery(): Promise<void> {
+  if (!env.haDiscoveryEnabled) return;
+  const client = globalForMqtt.__mqttClient;
+  if (!client || !client.connected) return;
+  const prefix = env.haDiscoveryPrefix;
+
+  let devices: IrDeviceWithButtons[];
+  try {
+    devices = await getIrDevices();
+  } catch (err) {
+    console.error("[mqtt] publishHaDiscovery: failed to read catalog:", err);
+    return;
+  }
+
+  for (const device of devices) {
+    if (device.kind === "climate") {
+      const config = device.config ?? DEFAULT_PANASONIC_CONFIG;
+      client.publish(
+        climateConfigTopic(prefix, device.id),
+        JSON.stringify(buildClimateDiscovery(device.id, device.name, config)),
+        { qos: 1, retain: true },
+      );
+      publishClimateStateToHa(device.id, normalizeClimate(device.state, config));
+    } else {
+      for (const button of device.buttons) {
+        client.publish(
+          buttonConfigTopic(prefix, button.id),
+          JSON.stringify(buildButtonDiscovery(button.id, device.name, button.label)),
+          { qos: 1, retain: true },
+        );
+      }
+    }
+  }
+  console.log(`[mqtt] published HA discovery for ${devices.length} IR device(s)`);
+}
+
+/** Clear a removed device's / button's retained HA discovery config. */
+export function clearHaDiscovery(entries: { kind: "climate" | "button"; id: string }[]): void {
+  if (!env.haDiscoveryEnabled) return;
+  const client = globalForMqtt.__mqttClient;
+  if (!client || !client.connected) return;
+  const prefix = env.haDiscoveryPrefix;
+  for (const e of entries) {
+    const topic =
+      e.kind === "climate" ? climateConfigTopic(prefix, e.id) : buttonConfigTopic(prefix, e.id);
+    client.publish(topic, "", { qos: 1, retain: true }); // empty retained = delete
+  }
+}
+
+// Re-export row types so API routes can annotate without importing the schema.
+export type { IrDevice, IrButton };

@@ -58,7 +58,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: "Home",
     items: [
       { label: "Climate", href: "/environment", icon: Thermometer },
-      { label: "Remote", href: "/remote", icon: Tv, soon: true },
+      { label: "Remote", href: "/remote", icon: Tv },
     ],
   },
   {

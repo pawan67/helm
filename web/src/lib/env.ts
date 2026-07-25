@@ -41,6 +41,14 @@ export const env = {
   get timezone() {
     return required("APP_TIMEZONE", "UTC");
   },
+  /** Publish Home Assistant MQTT discovery for IR devices (default on). */
+  get haDiscoveryEnabled() {
+    return required("HA_DISCOVERY_ENABLED", "true").toLowerCase() !== "false";
+  },
+  /** HA MQTT discovery prefix (must match HA's `discovery_prefix`). */
+  get haDiscoveryPrefix() {
+    return required("HA_DISCOVERY_PREFIX", "homeassistant");
+  },
 };
 
 export const DEVICE_ID = env.deviceId;
