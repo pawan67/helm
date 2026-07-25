@@ -15,6 +15,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm build
+# Next.js standalone doesn't require a public/ dir, and this project has none.
+# Ensure it exists so the runner's COPY below never fails (and works if assets
+# are added later).
+RUN mkdir -p public
 
 # ---- runner: minimal production image ----
 FROM node:22-alpine AS runner
