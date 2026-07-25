@@ -38,7 +38,7 @@
 #include <ir_Panasonic.h>
 #include "config.h"
 
-#define FW_VERSION "1.2.0"
+#define FW_VERSION "1.2.1"
 
 // ---- Ambient sensor (DHT11) ----
 #define DHT_PIN 25
@@ -662,9 +662,12 @@ void loop() {
     envPrimed = true;
   }
 
-  // Transmit one queued IR command while idle (an IR frame briefly blocks the
-  // loop, so we never do it mid-session).
-  if (state == IDLE && irQCount > 0) {
+  // Transmit any queued IR command right away, in any state, so control feels
+  // instant — a fan/AC must respond even while the bar sensor sees something in
+  // front of it. An IR frame briefly (~tens of ms) pauses distance sampling;
+  // firing one during an active pull-up is rare and at worst nudges a single
+  // rep's timing slightly, which is an acceptable trade for responsive control.
+  if (irQCount > 0) {
     String cmd;
     if (dequeueIr(cmd)) sendIrCmd(cmd);
   }

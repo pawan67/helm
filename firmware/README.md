@@ -74,7 +74,9 @@ at the top of a pull-up your head rises close to the sensor.
 - Subscribes to `pullup/<DEVICE_ID>/ir/cmd` and transmits the IR frame — a
   Panasonic AC state frame (`{"t":"climate",…}`) or a generic protocol code
   (`{"t":"button","protocol":"NEC","code":"00CF8976","bits":32}`). Commands are
-  queued and sent only while **idle**, so an IR burst never disturbs rep timing.
+  queued and transmitted right away in any state, so the fan/AC responds
+  instantly even while the bar sensor sees something (an IR burst only pauses
+  distance sampling for a few tens of ms).
   It acks each send on `pullup/<DEVICE_ID>/ir/ack`. Devices/buttons are managed
   on the web **Remote** page; nothing is hard-coded in firmware.
 
