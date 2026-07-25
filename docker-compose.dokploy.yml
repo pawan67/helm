@@ -1,0 +1,84 @@
+# HELM — Dokploy Compose deployment (EXTERNAL Postgres)
+#
+# Postgres is intentionally NOT defined here. Create a separate "Postgres"
+# app in Dokploy so your data lives with that app and survives every rebuild
+# / redeploy of HELM. Then paste its INTERNAL connection string into the
+# DATABASE_URL env var (Dokploy → this app → Environment).
+#
+# Deploy: point a Dokploy "Compose" app at this file. Set env vars from
+# .env.dokploy.example in the Environment tab. Map a Domain to the `web`
+# service on port 3000. Port 1883 is published so your ESP32 can reach MQTT.
+
+services:
+  mqtt:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    environment:
+      MQTT_SERVER_USER: ${MQTT_SERVER_USER:-server}
+      MQTT_SERVER_PASS: ${MQTT_SERVER_PASS:?set MQTT_SERVER_PASS}
+      MQTT_DEVICE_USER: ${MQTT_DEVICE_USER:-device}
+      MQTT_DEVICE_PASS: ${MQTT_DEVICE_PASS:?set MQTT_DEVICE_PASS}
+    # The broker config + password file are generated from the env vars above
+    # at container start, so no secret ever needs to be committed to the repo.
+    # ($$VAR escapes Compose interpolation so the *container* shell expands it.)
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        cat > /mosquitto/config/mosquitto.conf <<'EOF'
+        listener 1883
+        allow_anonymous false
+        password_file /mosquitto/config/passwd
+        persistence true
+        persistence_location /mosquitto/data/
+        log_dest stdout
+        log_type warning
+        log_type notice
+        log_type information
+        EOF
+        mosquitto_passwd -b -c /mosquitto/config/passwd "$$MQTT_SERVER_USER" "$$MQTT_SERVER_PASS"
+        mosquitto_passwd -b    /mosquitto/config/passwd "$$MQTT_DEVICE_USER" "$$MQTT_DEVICE_PASS"
+        if [ "$$(id -u)" = "0" ]; then chown -R mosquitto:mosquitto /mosquitto/config /mosquitto/data; fi
+        exec /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
+    ports:
+      # Raw MQTT/TCP for the ESP32 (which lives outside Docker). Make sure 1883
+      # is open on the host firewall / security group.
+      - "1883:1883"
+    volumes:
+      - mqtt_data:/mosquitto/data
+    networks:
+      - dokploy-network
+
+  web:
+    build:
+      context: ./web
+    restart: unless-stopped
+    depends_on:
+      - mqtt
+    environment:
+      # Paste the INTERNAL connection URL from your separate Dokploy Postgres
+      # app, e.g. postgres://postgres:PASS@<postgres-service>:5432/<db>
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to your Dokploy Postgres internal URL}
+      MQTT_URL: mqtt://mqtt:1883
+      MQTT_USER: ${MQTT_SERVER_USER:-server}
+      MQTT_PASS: ${MQTT_SERVER_PASS:?set MQTT_SERVER_PASS}
+      APP_PASSWORD: ${APP_PASSWORD:?set APP_PASSWORD}
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+      DEVICE_ID: ${DEVICE_ID:-bar-01}
+      DEVICE_KEY: ${DEVICE_KEY:?set DEVICE_KEY}
+      APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+    # Dokploy's Traefik routes your Domain to this container port over
+    # dokploy-network. No host port needed — add the Domain in Dokploy's UI.
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
+
+networks:
+  # Shared Dokploy overlay network. Lets `web` reach your separate Postgres app
+  # and lets Dokploy's Traefik route your Domain to `web`. Dokploy creates it.
+  dokploy-network:
+    external: true
+
+volumes:
+  mqtt_data:
