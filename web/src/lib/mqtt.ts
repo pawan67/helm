@@ -25,9 +25,13 @@ import {
 import {
   buildClimateDiscovery,
   buildButtonDiscovery,
+  buildFanDiscovery,
   climateConfigTopic,
   buttonConfigTopic,
+  fanConfigTopic,
   climateStateMessages,
+  fanStateMessages,
+  deriveFanMapping,
   parseHaCommandTopic,
   HA_COMMAND_FILTERS,
 } from "./ha-discovery";
@@ -338,6 +342,55 @@ export async function fireIrButton(buttonId: string): Promise<boolean> {
   return publishIrCmd(buildButtonCmd(button));
 }
 
+// Optimistic on/off + speed per fan device. IR is one-way, so this is best-effort
+// and resets on restart (HA re-seeds it as off via the retained discovery state).
+type FanState = { on: boolean; speed: number };
+const fanStates = new Map<string, FanState>();
+
+/**
+ * Apply a fan command from HA: map on/off → the Power button (toggle) and a
+ * speed (1..N) → the matching Speed button, then publish the new optimistic
+ * state back. No-ops for devices whose buttons don't form a fan.
+ */
+async function applyFanCommand(
+  deviceId: string,
+  cmd: { on?: boolean; speed?: number },
+): Promise<void> {
+  const device = (await getIrDevices()).find((d) => d.id === deviceId);
+  if (!device || device.kind !== "generic") return;
+  const mapping = deriveFanMapping(device.buttons);
+  if (!mapping) return;
+
+  const prev = fanStates.get(deviceId) ?? { on: false, speed: 1 };
+  let next: FanState = { ...prev };
+
+  if (cmd.speed != null && Number.isFinite(cmd.speed)) {
+    const idx =
+      Math.min(mapping.speedButtonIds.length, Math.max(1, Math.round(cmd.speed))) - 1;
+    const btnId = mapping.speedButtonIds[idx];
+    if (btnId) {
+      await fireIrButton(btnId);
+      next = { on: true, speed: idx + 1 }; // setting a speed also powers the fan on
+    }
+  } else if (cmd.on != null && cmd.on !== prev.on) {
+    await fireIrButton(mapping.powerButtonId); // Power is a toggle
+    next.on = cmd.on;
+  }
+
+  fanStates.set(deviceId, next);
+  publishFanStateToHa(deviceId, next);
+}
+
+/** Publish a fan's retained on/off + speed state to HA. */
+function publishFanStateToHa(deviceId: string, state: FanState) {
+  if (!env.haDiscoveryEnabled) return;
+  const client = globalForMqtt.__mqttClient;
+  if (!client || !client.connected) return;
+  for (const m of fanStateMessages(deviceId, state)) {
+    client.publish(m.topic, m.payload, { qos: 1, retain: true });
+  }
+}
+
 /** Handle a command that arrived from Home Assistant on a server-owned topic. */
 async function handleHaCommand(
   ha: ReturnType<typeof parseHaCommandTopic>,
@@ -349,9 +402,18 @@ async function handleHaCommand(
       await fireIrButton(ha.buttonId);
       return;
     }
+    if (ha.kind === "fan_on") {
+      await applyFanCommand(ha.deviceId, { on: payload.toUpperCase() !== "OFF" });
+      return;
+    }
+    if (ha.kind === "fan_pct") {
+      await applyFanCommand(ha.deviceId, { speed: Number(payload) });
+      return;
+    }
     let patch: ClimatePatch;
     if (ha.kind === "mode") patch = patchFromHaMode(payload);
     else if (ha.kind === "temp") patch = { tempC: Number(payload) };
+    else if (ha.kind === "swing") patch = { swing: payload as IrClimateState["swing"] };
     else patch = { fan: payload as IrClimateState["fan"] };
     await applyClimateAndBroadcast(ha.deviceId, patch);
   } catch (err) {
@@ -399,12 +461,35 @@ export async function publishHaDiscovery(): Promise<void> {
       );
       publishClimateStateToHa(device.id, normalizeClimate(device.state, config));
     } else {
-      for (const button of device.buttons) {
+      // Promote Power + Speed N into one `fan`; keep any other buttons as buttons.
+      const mapping = deriveFanMapping(device.buttons);
+      const mapped = mapping
+        ? new Set([mapping.powerButtonId, ...mapping.speedButtonIds])
+        : new Set<string>();
+
+      if (mapping) {
         client.publish(
-          buttonConfigTopic(prefix, button.id),
-          JSON.stringify(buildButtonDiscovery(button.id, device.name, button.label)),
+          fanConfigTopic(prefix, device.id),
+          JSON.stringify(
+            buildFanDiscovery(device.id, device.name, mapping.speedButtonIds.length),
+          ),
           { qos: 1, retain: true },
         );
+        publishFanStateToHa(device.id, fanStates.get(device.id) ?? { on: false, speed: 1 });
+      }
+
+      for (const button of device.buttons) {
+        const topic = buttonConfigTopic(prefix, button.id);
+        if (mapped.has(button.id)) {
+          // Now part of the fan entity — retire its standalone button in HA.
+          client.publish(topic, "", { qos: 1, retain: true });
+        } else {
+          client.publish(
+            topic,
+            JSON.stringify(buildButtonDiscovery(button.id, device.name, button.label)),
+            { qos: 1, retain: true },
+          );
+        }
       }
     }
   }

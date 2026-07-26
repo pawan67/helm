@@ -25,6 +25,8 @@ import {
   Trophy,
   Thermometer,
   Tv,
+  CalendarClock,
+  Zap,
   Settings2,
   LogOut,
   Menu,
@@ -59,6 +61,8 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { label: "Climate", href: "/environment", icon: Thermometer },
       { label: "Remote", href: "/remote", icon: Tv },
+      { label: "Schedules", href: "/schedules", icon: CalendarClock },
+      { label: "Shortcuts", href: "/shortcuts", icon: Zap },
     ],
   },
   {

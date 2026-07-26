@@ -22,6 +22,20 @@
       "when": 1784964666495,
       "tag": "0002_typical_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785082072881,
+      "tag": "0003_simple_guardsmen",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785083429590,
+      "tag": "0004_cool_tempest",
+      "breakpoints": true
     }
   ]
 }
