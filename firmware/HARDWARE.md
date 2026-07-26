@@ -7,6 +7,11 @@ build one component at a time.
 > ⚠️ **Always unplug the ESP32 from USB while you wire.** Only plug in power
 > after you've double-checked a connection. A swapped `+`/`GND` can kill a part.
 
+![HELM Bar-Node wiring guide: an ESP32 DevKitC on a breadboard with the VL53L0X ToF sensor on GPIO21/22 (I²C), a DHT11 temp/humidity sensor on GPIO25, a passive buzzer on GPIO26, and an optional 2N2222 IR-blaster driver on GPIO27; red wires are +, black are GND, colored wires are signal.](images/wiring-guide.png)
+
+*The whole board at a glance. Each section below walks through it one component
+at a time — build and test one part before moving to the next.*
+
 ---
 
 ## 1. Parts

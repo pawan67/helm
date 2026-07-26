@@ -8,6 +8,11 @@ TypeScript unit tests also validate the on-device algorithm.
 
 ## Hardware
 
+New to wiring? See **[HARDWARE.md](HARDWARE.md)** for the beginner, pin-by-pin
+guide. The full diagram:
+
+![HELM Bar-Node wiring guide: ESP32 DevKitC with the VL53L0X on GPIO21/22, DHT11 on GPIO25, a passive buzzer on GPIO26, and an optional IR blaster on GPIO27.](images/wiring-guide.png)
+
 | Part           | Pin → ESP32 |
 |----------------|-------------|
 | VL53L0X VIN    | 3V3         |
