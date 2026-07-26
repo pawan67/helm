@@ -45,7 +45,7 @@ const paletteFrom = (name: string, contrast: string) => ({
 });
 
 // Dark ink used as the readable text color on a bright accent fill.
-const INK_TEAL = "oklch(0.18 0.03 192)";
+const INK_TEAL = "oklch(0.20 0.03 130)"; // dark chartreuse: text on a lime fill
 const INK_CYAN = "oklch(0.18 0.03 246)";
 const INK_AMBER = "oklch(0.20 0.04 70)";
 const INK_GREEN = "oklch(0.17 0.03 150)";
@@ -110,19 +110,23 @@ const config = defineConfig({
           950: { value: "oklch(0.19 0.006 260)" },
         },
 
-        // Teal — the calm primary signal (hue 190). Live / interactive / on.
+        // Lime — the primary signal (chartreuse, hue 128). Live / interactive /
+        // on. NOTE: still keyed `teal` so every call site + CSS var
+        // (--chakra-colors-teal-*) renders lime with zero churn; a clean rename
+        // to `lime` can follow once the direction sticks. Bright by nature, so
+        // solid fills take a dark ink (INK_TEAL below), like the reference bars.
         teal: {
-          50: { value: "oklch(0.96 0.03 190)" },
-          100: { value: "oklch(0.92 0.05 190)" },
-          200: { value: "oklch(0.87 0.075 190)" },
-          300: { value: "oklch(0.83 0.10 190)" },
-          400: { value: "oklch(0.79 0.115 190)" },
-          500: { value: "oklch(0.73 0.12 191)" },
-          600: { value: "oklch(0.65 0.115 191)" },
-          700: { value: "oklch(0.53 0.10 192)" },
-          800: { value: "oklch(0.35 0.065 192)" },
-          900: { value: "oklch(0.27 0.045 192)" },
-          950: { value: "oklch(0.21 0.03 192)" },
+          50: { value: "oklch(0.97 0.04 128)" },
+          100: { value: "oklch(0.95 0.08 128)" },
+          200: { value: "oklch(0.93 0.13 128)" },
+          300: { value: "oklch(0.91 0.17 128)" },
+          400: { value: "oklch(0.89 0.20 128)" },
+          500: { value: "oklch(0.87 0.21 128)" },
+          600: { value: "oklch(0.78 0.19 128)" },
+          700: { value: "oklch(0.62 0.15 129)" },
+          800: { value: "oklch(0.40 0.09 130)" },
+          900: { value: "oklch(0.30 0.06 130)" },
+          950: { value: "oklch(0.24 0.04 130)" },
         },
 
         // Cyan — a soft blue for endurance (hang time, humidity), hue 245.

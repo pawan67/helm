@@ -31,7 +31,7 @@ export function Logo({
       />
 
       {/* grips — teal nubs beyond the rim, at each spoke */}
-      <g stroke="#20b2aa" strokeWidth="2.6" strokeLinecap="round">
+      <g stroke="#a3e635" strokeWidth="2.6" strokeLinecap="round">
         <path d="M29.5 20 33.4 20" />
         <path d="M24.8 28.2 26.8 31.6" />
         <path d="M15.2 28.2 13.2 31.6" />
@@ -41,7 +41,7 @@ export function Logo({
       </g>
 
       {/* rim — the calm signal */}
-      <circle cx="20" cy="20" r="9.5" stroke="#20b2aa" strokeWidth="2.2" />
+      <circle cx="20" cy="20" r="9.5" stroke="#a3e635" strokeWidth="2.2" />
 
       {/* spokes — chalk */}
       <g stroke="#eef0f4" strokeWidth="1.7" strokeLinecap="round">
