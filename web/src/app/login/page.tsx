@@ -52,48 +52,13 @@ function LoginForm() {
   }
 
   return (
-    <Center
-      minH="100dvh"
-      bg="bg"
-      px="5"
-      py="10"
-      position="relative"
-      overflow="hidden"
-    >
-      {/* atmosphere */}
-      <Box
-        position="absolute"
-        top="33%"
-        left="50%"
-        boxSize="420px"
-        transform="translate(-50%, -50%)"
-        rounded="full"
-        bg="hazard.solid/10"
-        filter="blur(140px)"
-        pointerEvents="none"
-      />
-
-      <Box
-        w="full"
-        maxW="sm"
-        position="relative"
-        zIndex="1"
-        animation="ih-rise 0.4s ease-out"
-      >
+    <Center minH="100dvh" bg="bg" px="5" py="10">
+      <Box w="full" maxW="sm">
         <form onSubmit={submit}>
           <Card.Root bg="bg.panel">
             <Card.Header alignItems="center" textAlign="center" gap="3" pt="2">
-              <Box position="relative">
-                <Box
-                  position="absolute"
-                  inset="0"
-                  rounded="2xl"
-                  bg="hazard.solid/15"
-                  filter="blur(20px)"
-                />
-                <Logo size={56} />
-              </Box>
-              <Heading size="3xl" letterSpacing="wide" color="hazard.fg">
+              <Logo size={56} />
+              <Heading size="3xl" color="teal.fg">
                 HELM
               </Heading>
               <Eyebrow>operator console</Eyebrow>
@@ -113,8 +78,6 @@ function LoginForm() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••"
                     size="lg"
-                    fontFamily="mono"
-                    letterSpacing="widest"
                   />
                 </Field.Root>
 
@@ -123,7 +86,7 @@ function LoginForm() {
                     <Alert.Indicator>
                       <Icon as={TriangleAlert} />
                     </Alert.Indicator>
-                    <Alert.Title fontFamily="mono">{error}</Alert.Title>
+                    <Alert.Title>{error}</Alert.Title>
                   </Alert.Root>
                 ) : null}
               </Stack>
@@ -132,27 +95,21 @@ function LoginForm() {
             <Card.Footer>
               <Button
                 type="submit"
-                colorPalette="hazard"
+                colorPalette="teal"
                 size="lg"
                 w="full"
                 loading={loading}
-                loadingText="UNLOCKING…"
+                loadingText="Unlocking…"
                 disabled={password.length === 0}
               >
-                TAKE THE HELM
+                Take the helm
                 <Icon as={ArrowRight} boxSize="4" />
               </Button>
             </Card.Footer>
           </Card.Root>
         </form>
 
-        <Text
-          mt="6"
-          textAlign="center"
-          fontFamily="mono"
-          fontSize="xs"
-          color="fg.subtle"
-        >
+        <Text mt="6" textAlign="center" fontSize="xs" color="fg.subtle">
           single-user access · self-hosted
         </Text>
       </Box>

@@ -63,7 +63,7 @@ export function DeviceCard({
             <DeviceIcon size={18} />
           </Circle>
           <Stack gap="0.5">
-            <Text fontFamily="heading" fontWeight="700" textTransform="uppercase" letterSpacing="0.02em">
+            <Text fontWeight="700">
               {device.name}
             </Text>
             <Eyebrow>{device.buttons.length} buttons · IR</Eyebrow>
@@ -79,7 +79,7 @@ export function DeviceCard({
 
       <Card.Body>
         {device.buttons.length === 0 && !editMode ? (
-          <Text fontFamily="mono" fontSize="xs" color="fg.subtle">
+          <Text fontSize="xs" color="fg.subtle">
             No buttons yet — turn on edit to add some.
           </Text>
         ) : null}
@@ -94,24 +94,20 @@ export function DeviceCard({
                 onClick={() => (editMode ? setDialog({ open: true, button: b }) : fire(b))}
                 position="relative"
                 borderWidth="1px"
-                borderColor={isFiring ? "hazard.solid" : "border.subtle"}
-                bg={isFiring ? "hazard.subtle" : "bg.subtle"}
-                color={isFiring ? "hazard.fg" : "fg.muted"}
+                borderColor={isFiring ? "teal.solid" : "border.subtle"}
+                bg={isFiring ? "teal.subtle" : "bg.subtle"}
+                color={isFiring ? "teal.fg" : "fg.muted"}
                 rounded="md"
                 py="3"
                 px="2"
                 minH="20"
                 transition="all 0.12s"
                 _hover={{ borderColor: "border.emphasized", color: "fg", bg: "bg.muted" }}
-                className="ih-machined"
               >
                 <Stack gap="1.5" align="center" justify="center" h="full">
                   <BtnIcon size={20} />
                   <Text
-                    fontFamily="mono"
                     fontSize="10px"
-                    letterSpacing="0.06em"
-                    textTransform="uppercase"
                     lineClamp={1}
                   >
                     {b.label}
@@ -144,11 +140,11 @@ export function DeviceCard({
               rounded="md"
               minH="20"
               transition="all 0.12s"
-              _hover={{ borderColor: "hazard.solid", color: "hazard.fg" }}
+              _hover={{ borderColor: "teal.solid", color: "teal.fg" }}
             >
               <Stack gap="1" align="center" justify="center" h="full">
                 <Plus size={20} />
-                <Text fontFamily="mono" fontSize="10px" letterSpacing="0.06em" textTransform="uppercase">
+                <Text fontSize="10px">
                   Add
                 </Text>
               </Stack>

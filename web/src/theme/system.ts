@@ -1,18 +1,21 @@
 /**
- * HELM design system — industrial command console.
+ * HELM design system — a calm, premium home & body console.
  *
- * Steel and chalk under harsh light, one hot "hazard" signal, hard edges,
- * telemetry that looks like telemetry. See ../../../DESIGN.md for the spec.
+ * Soft layered slate under a single calm "teal" signal, rounded corners, a
+ * friendly geometric typeface, and telemetry that stays quiet until it matters.
+ * The app is dark-only by design (a console on a wall), so tokens are defined
+ * flat: the same value in _light and _dark.
  *
  * Built on Chakra's defaultConfig, then overridden:
- *  - neutral scale + bg/fg/border → cool steel (hue 250, near-zero chroma)
- *  - three equipment-LED palettes: hazard (amber = live/effort/primary),
- *    online (green LED = device ready), danger (rust = fault)
- *  - radii tightened to machined-hard values
+ *  - neutral scale + bg/fg/border → a soft, faintly-cool slate
+ *  - accent palettes:
+ *      teal   — the primary signal: live / interactive / device-on
+ *      cyan   — a soft blue for endurance (hang time, humidity)
+ *      hazard — warm amber, reserved for reward + heat (streaks, PRs, goals, temp)
+ *      online — green, device ready / connected
+ *      danger — red, fault / offline / destructive
+ *  - radii rounded up to soft, premium values
  *  - fonts wired to the next/font CSS vars set in app/layout.tsx
- *
- * The app is dark-only by design (equipment on a wall), so tokens are defined
- * flat: the same value for _light and _dark.
  */
 import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
 
@@ -30,13 +33,30 @@ const aliasOf = (palette: string, contrast: string) => ({
   solid: ref(`colors.${palette}.500`),
   focusRing: ref(`colors.${palette}.500`),
 });
+/** The standard semantic palette shape, pointing at a raw scale of its own name. */
+const paletteFrom = (name: string, contrast: string) => ({
+  contrast: flat(contrast),
+  fg: ref(`colors.${name}.300`),
+  subtle: ref(`colors.${name}.900`),
+  muted: ref(`colors.${name}.800`),
+  emphasized: ref(`colors.${name}.400`),
+  solid: ref(`colors.${name}.500`),
+  focusRing: ref(`colors.${name}.500`),
+});
+
+// Dark ink used as the readable text color on a bright accent fill.
+const INK_TEAL = "oklch(0.18 0.03 192)";
+const INK_CYAN = "oklch(0.18 0.03 246)";
+const INK_AMBER = "oklch(0.20 0.04 70)";
+const INK_GREEN = "oklch(0.17 0.03 150)";
+const INK_RED = "oklch(0.97 0.01 28)";
 
 const config = defineConfig({
   cssVarsPrefix: "chakra",
   globalCss: {
     "::selection": {
-      background: "hazard.solid",
-      color: "hazard.contrast",
+      background: "teal.solid",
+      color: "teal.contrast",
     },
     // Tabular figures everywhere numbers change, so counters never jitter.
     "[data-tnum]": {
@@ -49,11 +69,11 @@ const config = defineConfig({
       fonts: {
         heading: {
           value:
-            'var(--font-display), "Barlow Condensed", "Arial Narrow", system-ui, sans-serif',
+            'var(--font-display), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
         },
         body: {
           value:
-            'var(--font-body), Barlow, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+            'var(--font-body), "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
         },
         mono: {
           value:
@@ -61,154 +81,158 @@ const config = defineConfig({
         },
       },
 
-      // Machined-hard corners. Full-round is reserved for status pills + gauge.
+      // Soft, premium corners. Full-round is still reserved for pills + gauges.
       radii: {
-        "2xs": { value: "1px" },
-        xs: { value: "1px" },
-        sm: { value: "2px" },
-        md: { value: "3px" },
-        lg: { value: "4px" },
-        xl: { value: "6px" },
-        "2xl": { value: "8px" },
-        "3xl": { value: "10px" },
-        "4xl": { value: "12px" },
+        "2xs": { value: "4px" },
+        xs: { value: "6px" },
+        sm: { value: "8px" },
+        md: { value: "10px" },
+        lg: { value: "14px" },
+        xl: { value: "18px" },
+        "2xl": { value: "24px" },
+        "3xl": { value: "30px" },
+        "4xl": { value: "36px" },
       },
 
       colors: {
-        // Steel — cool neutral, hue 250, near-zero chroma. Replaces gray.
+        // Slate — a soft, faintly-cool neutral (hue 260). Replaces gray.
         gray: {
-          50: { value: "oklch(0.96 0.004 250)" },
-          100: { value: "oklch(0.90 0.005 250)" },
-          200: { value: "oklch(0.83 0.006 250)" },
-          300: { value: "oklch(0.72 0.006 250)" },
-          400: { value: "oklch(0.58 0.008 250)" },
-          500: { value: "oklch(0.48 0.010 250)" },
-          600: { value: "oklch(0.40 0.010 250)" },
-          700: { value: "oklch(0.32 0.009 250)" },
-          800: { value: "oklch(0.26 0.009 250)" },
-          900: { value: "oklch(0.20 0.008 250)" },
-          950: { value: "oklch(0.16 0.006 250)" },
+          50: { value: "oklch(0.97 0.004 260)" },
+          100: { value: "oklch(0.93 0.005 260)" },
+          200: { value: "oklch(0.87 0.006 260)" },
+          300: { value: "oklch(0.78 0.007 260)" },
+          400: { value: "oklch(0.65 0.008 260)" },
+          500: { value: "oklch(0.55 0.009 260)" },
+          600: { value: "oklch(0.46 0.009 260)" },
+          700: { value: "oklch(0.38 0.009 260)" },
+          800: { value: "oklch(0.30 0.008 260)" },
+          900: { value: "oklch(0.24 0.007 260)" },
+          950: { value: "oklch(0.19 0.006 260)" },
         },
 
-        // Hazard — safety amber, hue 52. The one hot signal: live / effort / primary.
+        // Teal — the calm primary signal (hue 190). Live / interactive / on.
+        teal: {
+          50: { value: "oklch(0.96 0.03 190)" },
+          100: { value: "oklch(0.92 0.05 190)" },
+          200: { value: "oklch(0.87 0.075 190)" },
+          300: { value: "oklch(0.83 0.10 190)" },
+          400: { value: "oklch(0.79 0.115 190)" },
+          500: { value: "oklch(0.73 0.12 191)" },
+          600: { value: "oklch(0.65 0.115 191)" },
+          700: { value: "oklch(0.53 0.10 192)" },
+          800: { value: "oklch(0.35 0.065 192)" },
+          900: { value: "oklch(0.27 0.045 192)" },
+          950: { value: "oklch(0.21 0.03 192)" },
+        },
+
+        // Cyan — a soft blue for endurance (hang time, humidity), hue 245.
+        cyan: {
+          50: { value: "oklch(0.96 0.02 245)" },
+          100: { value: "oklch(0.92 0.04 245)" },
+          200: { value: "oklch(0.87 0.06 245)" },
+          300: { value: "oklch(0.82 0.085 245)" },
+          400: { value: "oklch(0.77 0.11 245)" },
+          500: { value: "oklch(0.71 0.12 246)" },
+          600: { value: "oklch(0.63 0.12 246)" },
+          700: { value: "oklch(0.51 0.10 246)" },
+          800: { value: "oklch(0.34 0.07 246)" },
+          900: { value: "oklch(0.27 0.05 246)" },
+          950: { value: "oklch(0.21 0.035 246)" },
+        },
+
+        // Hazard — warm amber (hue 72), softened from safety-vest to honey.
+        // Reserved for reward + heat: streaks, PRs, goals, temperature.
         hazard: {
-          50: { value: "oklch(0.96 0.02 62)" },
-          100: { value: "oklch(0.90 0.05 60)" },
-          200: { value: "oklch(0.85 0.09 58)" },
-          300: { value: "oklch(0.80 0.14 56)" },
-          400: { value: "oklch(0.76 0.16 54)" },
-          500: { value: "oklch(0.70 0.17 52)" },
-          600: { value: "oklch(0.64 0.165 50)" },
-          700: { value: "oklch(0.52 0.13 49)" },
-          800: { value: "oklch(0.33 0.075 51)" },
-          900: { value: "oklch(0.25 0.045 52)" },
-          950: { value: "oklch(0.19 0.028 52)" },
+          50: { value: "oklch(0.96 0.03 82)" },
+          100: { value: "oklch(0.92 0.06 80)" },
+          200: { value: "oklch(0.88 0.09 78)" },
+          300: { value: "oklch(0.85 0.115 76)" },
+          400: { value: "oklch(0.81 0.13 74)" },
+          500: { value: "oklch(0.77 0.135 72)" },
+          600: { value: "oklch(0.71 0.13 70)" },
+          700: { value: "oklch(0.57 0.11 68)" },
+          800: { value: "oklch(0.38 0.075 70)" },
+          900: { value: "oklch(0.29 0.05 72)" },
+          950: { value: "oklch(0.22 0.032 72)" },
         },
 
-        // Online — green equipment LED, hue 150. Device ready / connected.
+        // Online — green (hue 150). Device ready / connected.
         online: {
           50: { value: "oklch(0.95 0.03 152)" },
           100: { value: "oklch(0.90 0.06 152)" },
-          200: { value: "oklch(0.84 0.09 151)" },
-          300: { value: "oklch(0.82 0.12 152)" },
-          400: { value: "oklch(0.78 0.13 151)" },
-          500: { value: "oklch(0.72 0.13 150)" },
-          600: { value: "oklch(0.64 0.12 150)" },
-          700: { value: "oklch(0.50 0.10 150)" },
-          800: { value: "oklch(0.30 0.055 150)" },
-          900: { value: "oklch(0.23 0.035 150)" },
-          950: { value: "oklch(0.18 0.022 150)" },
+          200: { value: "oklch(0.85 0.09 151)" },
+          300: { value: "oklch(0.83 0.115 152)" },
+          400: { value: "oklch(0.79 0.125 151)" },
+          500: { value: "oklch(0.73 0.125 150)" },
+          600: { value: "oklch(0.65 0.115 150)" },
+          700: { value: "oklch(0.51 0.095 150)" },
+          800: { value: "oklch(0.31 0.055 150)" },
+          900: { value: "oklch(0.24 0.035 150)" },
+          950: { value: "oklch(0.19 0.022 150)" },
         },
 
-        // Danger — rust red, hue 30. Fault / offline / destructive.
+        // Danger — red (hue 28). Fault / offline / destructive.
         danger: {
-          50: { value: "oklch(0.96 0.02 32)" },
-          100: { value: "oklch(0.90 0.05 32)" },
-          200: { value: "oklch(0.83 0.09 31)" },
-          300: { value: "oklch(0.77 0.14 31)" },
-          400: { value: "oklch(0.70 0.17 30)" },
-          500: { value: "oklch(0.63 0.18 30)" },
-          600: { value: "oklch(0.56 0.17 29)" },
-          700: { value: "oklch(0.45 0.14 28)" },
-          800: { value: "oklch(0.32 0.09 30)" },
-          900: { value: "oklch(0.24 0.06 30)" },
-          950: { value: "oklch(0.19 0.04 30)" },
+          50: { value: "oklch(0.96 0.02 30)" },
+          100: { value: "oklch(0.90 0.05 30)" },
+          200: { value: "oklch(0.84 0.09 29)" },
+          300: { value: "oklch(0.78 0.13 29)" },
+          400: { value: "oklch(0.72 0.16 28)" },
+          500: { value: "oklch(0.65 0.175 28)" },
+          600: { value: "oklch(0.58 0.165 27)" },
+          700: { value: "oklch(0.47 0.135 26)" },
+          800: { value: "oklch(0.33 0.09 28)" },
+          900: { value: "oklch(0.25 0.06 28)" },
+          950: { value: "oklch(0.20 0.04 28)" },
         },
       },
     },
 
     semanticTokens: {
+      // Rounded defaults for Chakra's built-in recipes (buttons, inputs, etc).
+      radii: {
+        l1: { value: "{radii.sm}" },
+        l2: { value: "{radii.md}" },
+        l3: { value: "{radii.lg}" },
+      },
+
       colors: {
-        // Steel surface layering (canvas darkest → panel → subtle → muted).
+        // Slate surface layering (canvas → panel → subtle → muted), lifted and
+        // soft rather than clinical black.
         bg: {
-          DEFAULT: flat("oklch(0.145 0.006 250)"),
-          subtle: flat("oklch(0.215 0.008 250)"),
-          muted: flat("oklch(0.25 0.009 250)"),
-          emphasized: flat("oklch(0.285 0.009 250)"),
-          panel: flat("oklch(0.185 0.007 250)"),
-          inverted: flat("oklch(0.93 0.005 250)"),
+          DEFAULT: flat("oklch(0.175 0.006 260)"),
+          subtle: flat("oklch(0.225 0.007 260)"),
+          muted: flat("oklch(0.26 0.008 260)"),
+          emphasized: flat("oklch(0.30 0.008 260)"),
+          panel: flat("oklch(0.205 0.007 260)"),
+          inverted: flat("oklch(0.95 0.004 260)"),
         },
         fg: {
-          DEFAULT: flat("oklch(0.93 0.005 250)"), // chalk
-          muted: flat("oklch(0.70 0.006 250)"),
-          subtle: flat("oklch(0.52 0.007 250)"),
-          inverted: flat("oklch(0.145 0.006 250)"),
+          DEFAULT: flat("oklch(0.96 0.004 260)"), // soft white
+          muted: flat("oklch(0.74 0.006 260)"),
+          subtle: flat("oklch(0.56 0.007 260)"),
+          inverted: flat("oklch(0.175 0.006 260)"),
         },
         border: {
-          DEFAULT: flat("oklch(0.36 0.010 250)"),
-          muted: flat("oklch(0.24 0.008 250)"),
-          subtle: flat("oklch(0.285 0.008 250)"),
-          emphasized: flat("oklch(0.46 0.011 250)"),
+          DEFAULT: flat("oklch(0.34 0.008 260)"),
+          muted: flat("oklch(0.25 0.007 260)"),
+          subtle: flat("oklch(0.285 0.008 260)"),
+          emphasized: flat("oklch(0.42 0.009 260)"),
         },
-        focusRing: ref("colors.hazard.500"),
+        focusRing: ref("colors.teal.500"),
 
-        // Hazard palette (mirrors Chakra's built-in palette token shape).
-        hazard: {
-          contrast: flat("oklch(0.16 0.02 62)"),
-          fg: ref("colors.hazard.300"),
-          subtle: ref("colors.hazard.900"),
-          muted: ref("colors.hazard.800"),
-          emphasized: ref("colors.hazard.400"),
-          solid: ref("colors.hazard.500"),
-          focusRing: ref("colors.hazard.500"),
-        },
-        online: {
-          contrast: flat("oklch(0.14 0.02 150)"),
-          fg: ref("colors.online.300"),
-          subtle: ref("colors.online.900"),
-          muted: ref("colors.online.800"),
-          emphasized: ref("colors.online.400"),
-          solid: ref("colors.online.500"),
-          focusRing: ref("colors.online.500"),
-        },
-        danger: {
-          contrast: flat("oklch(0.97 0.01 32)"),
-          fg: ref("colors.danger.300"),
-          subtle: ref("colors.danger.900"),
-          muted: ref("colors.danger.800"),
-          emphasized: ref("colors.danger.400"),
-          solid: ref("colors.danger.500"),
-          focusRing: ref("colors.danger.500"),
-        },
+        // First-class accent palettes (mirror Chakra's built-in palette shape).
+        teal: paletteFrom("teal", INK_TEAL),
+        cyan: paletteFrom("cyan", INK_CYAN),
+        hazard: paletteFrom("hazard", INK_AMBER),
+        online: paletteFrom("online", INK_GREEN),
+        danger: paletteFrom("danger", INK_RED),
 
-        // Legacy-palette remaps: the codebase sprinkled teal/cyan/orange/red as
-        // ad-hoc accents. Rather than hand-edit every call site, we point those
-        // palettes at the real system so untouched screens adopt it immediately.
-        //   teal / orange / purple → hazard (hot)   red → danger (fault)
-        //   cyan → steel (calm endurance / hang; no second hue)
-        teal: aliasOf("hazard", "oklch(0.16 0.02 62)"),
-        orange: aliasOf("hazard", "oklch(0.16 0.02 62)"),
-        purple: aliasOf("hazard", "oklch(0.16 0.02 62)"),
-        red: aliasOf("danger", "oklch(0.97 0.01 32)"),
-        cyan: {
-          contrast: flat("oklch(0.145 0.006 250)"),
-          fg: ref("colors.gray.100"),
-          subtle: ref("colors.gray.900"),
-          muted: ref("colors.gray.800"),
-          emphasized: ref("colors.gray.600"),
-          solid: ref("colors.gray.400"),
-          focusRing: ref("colors.gray.500"),
-        },
+        // Legacy-palette remaps so untouched call sites stay on-brand:
+        //   orange → hazard (warm)   purple → teal (primary)   red → danger
+        orange: aliasOf("hazard", INK_AMBER),
+        purple: aliasOf("teal", INK_TEAL),
+        red: aliasOf("danger", INK_RED),
       },
     },
   },

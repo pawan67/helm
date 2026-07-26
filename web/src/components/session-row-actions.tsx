@@ -49,7 +49,7 @@ export function SessionRowActions({
         variant="ghost"
         size="sm"
         color="fg.muted"
-        _hover={{ color: "danger.fg", bg: "bg.muted" }}
+        _hover={{ color: "red.fg", bg: "bg.muted" }}
         onClick={() => setConfirm(true)}
       >
         <Trash2 />

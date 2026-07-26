@@ -48,8 +48,16 @@ export function SessionRow({
         borderColor="border.subtle"
         bg="bg.subtle"
         colorPalette={accent}
+        overflow="hidden"
+        flexShrink="0"
       >
-        <Metric fontSize="lg" color="colorPalette.fg">
+        <Metric
+          fontSize={isPull ? "lg" : "xs"}
+          color="colorPalette.fg"
+          px="1"
+          maxW="full"
+          truncate
+        >
           {isPull ? session.reps : formatHang(session.maxHangMs).replace(" ", "")}
         </Metric>
       </Square>
@@ -58,7 +66,7 @@ export function SessionRow({
         <Box>
           <TypeBadge type={session.type} />
         </Box>
-        <Text fontFamily="mono" fontSize="11px" color="fg.subtle">
+        <Text fontSize="11px" color="fg.subtle">
           {started.toLocaleTimeString(undefined, {
             hour: "2-digit",
             minute: "2-digit",
@@ -71,19 +79,19 @@ export function SessionRow({
       <Stack gap="0.5" textAlign="right">
         {isPull ? (
           <>
-            <Text fontFamily="mono" fontSize="sm" fontVariantNumeric="tabular-nums">
+            <Text fontSize="sm" fontVariantNumeric="tabular-nums">
               {session.reps} reps
             </Text>
-            <Text fontFamily="mono" fontSize="11px" color="fg.subtle">
+            <Text fontSize="11px" color="fg.subtle">
               {formatHang(session.hangMs)} on bar
             </Text>
           </>
         ) : (
           <>
-            <Text fontFamily="mono" fontSize="sm" fontVariantNumeric="tabular-nums">
+            <Text fontSize="sm" fontVariantNumeric="tabular-nums">
               {formatHang(session.maxHangMs)}
             </Text>
-            <Text fontFamily="mono" fontSize="11px" color="fg.subtle">
+            <Text fontSize="11px" color="fg.subtle">
               best hold
             </Text>
           </>

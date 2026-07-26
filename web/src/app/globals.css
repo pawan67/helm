@@ -1,9 +1,15 @@
 /*
  * HELM globals. Chakra (custom `system`) provides the reset + tokens; this
- * file adds what tokens can't: matte-steel film grain, the hazard-stripe motif,
- * a quiet instrument scrollbar, and the motion keyframes referenced via Chakra's
- * `animation` style prop. See DESIGN.md.
+ * file adds what tokens can't: the soft panel depth, the teal live-signal
+ * motif, a quiet rounded scrollbar, and the motion keyframes referenced via
+ * Chakra's `animation` style prop.
  */
+
+/* Headings share the friendly body face (single next/font load). */
+:root {
+  --font-display: var(--font-body);
+}
+
 html,
 body {
   min-height: 100%;
@@ -12,29 +18,16 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "ss01";
 }
 
-/* Film grain — a fixed, faint matte-metal texture over the whole canvas. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.035;
-  mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* Instrument scrollbar — steel, unobtrusive. */
+/* Rounded, unobtrusive scrollbar. */
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 *::-webkit-scrollbar-thumb {
   background: var(--chakra-colors-border);
-  border-radius: 2px;
+  border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -44,56 +37,60 @@ body::before {
 }
 
 /*
- * Hazard stripe — caution tape. Marks a LIVE surface, never decoration.
+ * Live signal — a soft teal wash. Marks a LIVE surface, never decoration.
  * `.ih-stripe` is the bold banner fill; `.ih-stripe-edge` is a thin top rule.
  */
 .ih-stripe {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    color-mix(in oklch, var(--chakra-colors-hazard-solid) 90%, black) 0 11px,
-    color-mix(in oklch, var(--chakra-colors-hazard-solid) 55%, black) 11px 22px
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--chakra-colors-teal-solid) 85%, transparent),
+    color-mix(in oklch, var(--chakra-colors-teal-solid) 45%, transparent)
   );
 }
 .ih-stripe-edge {
-  background-image: repeating-linear-gradient(
-    -45deg,
-    var(--chakra-colors-hazard-solid) 0 6px,
-    transparent 6px 12px
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    var(--chakra-colors-teal-solid) 20%,
+    var(--chakra-colors-teal-solid) 80%,
+    transparent
   );
 }
 
-/* A machined top-highlight, for panels that should read as brushed steel. */
+/* Soft premium panel depth: a faint top highlight over a gentle drop shadow. */
 .ih-machined {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
 /* ---- Motion (referenced via Chakra `animation` prop) ---------------------- */
 
-/* Rep increment: a hard, quick pop — no overshoot beyond a firm snap. */
+/* Rep increment: a soft, quick pop. */
 @keyframes ih-pop {
   0% {
     transform: scale(1);
   }
-  30% {
-    transform: scale(1.1);
+  35% {
+    transform: scale(1.08);
   }
   100% {
     transform: scale(1);
   }
 }
 
-/* PR stamp: slams in from oversize and settles. Heavy, not sparkly. */
+/* PR stamp: eases in from oversize and settles. */
 @keyframes ih-stamp {
   0% {
-    transform: scale(1.35) rotate(-2deg);
+    transform: scale(1.25);
     opacity: 0;
   }
   60% {
-    transform: scale(0.97) rotate(0deg);
+    transform: scale(0.98);
     opacity: 1;
   }
   100% {
-    transform: scale(1) rotate(0deg);
+    transform: scale(1);
     opacity: 1;
   }
 }
@@ -115,7 +112,7 @@ body::before {
     opacity: 1;
   }
   50% {
-    opacity: 0.25;
+    opacity: 0.3;
   }
 }
 

@@ -66,36 +66,33 @@ export function DistanceGauge({
             position="absolute"
             left="0"
             top="0"
-            fontSize="9px"
-            letterSpacing="0.2em"
-            textTransform="uppercase"
+            fontSize="10px"
+            fontWeight="medium"
             color="fg.subtle"
           >
-            near
+            Near
           </Text>
           <Text
             position="absolute"
             left="0"
             bottom="0"
-            fontSize="9px"
-            letterSpacing="0.2em"
-            textTransform="uppercase"
+            fontSize="10px"
+            fontWeight="medium"
             color="fg.subtle"
           >
-            far
+            Far
           </Text>
           <Text
             position="absolute"
             left="0"
             zIndex="3"
             transform="translateY(-50%)"
-            fontSize="9px"
-            letterSpacing="0.2em"
-            textTransform="uppercase"
+            fontSize="10px"
+            fontWeight="semibold"
             color="teal.fg"
             style={{ top: `${repZoneEnd}%` }}
           >
-            rep
+            Rep
           </Text>
 
           {/* beam slot */}

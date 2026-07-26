@@ -59,7 +59,7 @@ export function RemoteView({ initial }: { initial: DeviceWithButtons[] }) {
         <Stack direction="row" gap="2">
           <Button
             variant={editMode ? "solid" : "outline"}
-            colorPalette={editMode ? "hazard" : "gray"}
+            colorPalette={editMode ? "teal" : "gray"}
             size="sm"
             onClick={() => setEditMode((e) => !e)}
           >
@@ -91,7 +91,7 @@ export function RemoteView({ initial }: { initial: DeviceWithButtons[] }) {
                 </EmptyState.Description>
                 <Button
                   mt="2"
-                  colorPalette="hazard"
+                  colorPalette="teal"
                   onClick={() => setDeviceDialog({ open: true, device: undefined })}
                 >
                   <Icon as={Plus} boxSize="4" /> Add device

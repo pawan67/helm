@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -52,7 +52,7 @@ const SWING_LABEL: Record<string, string> = {
   lowest: "Btm",
 };
 
-/** A row of steel toggle buttons; the active value glows hazard. */
+/** A row of toggle buttons; the active value is highlighted. */
 function ToggleRow({
   label,
   options,
@@ -80,11 +80,9 @@ function ToggleRow({
               size="xs"
               minW="12"
               variant={active ? "solid" : "outline"}
-              colorPalette={active ? "hazard" : "gray"}
-              color={active ? "hazard.contrast" : "fg.muted"}
-              borderColor={active ? "hazard.solid" : "border.subtle"}
-              fontFamily="mono"
-              letterSpacing="0.06em"
+              colorPalette={active ? "teal" : "gray"}
+              color={active ? "teal.contrast" : "fg.muted"}
+              borderColor={active ? "teal.solid" : "border.subtle"}
               onClick={() => onSelect(opt)}
             >
               {labels[opt] ?? opt}
@@ -108,8 +106,6 @@ export function ClimateCard({
   const config = device.config ?? DEFAULT_PANASONIC_CONFIG;
   const { irClimate } = useLive();
   const [state, setState] = useState<IrClimateState>(() => normalizeClimate(device.state, config));
-  const [flash, setFlash] = useState(false);
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reconcile with server-pushed state (another tab, or Home Assistant).
   const external = irClimate[device.id];
@@ -117,17 +113,10 @@ export function ClimateCard({
     if (external) setState(external);
   }, [external]);
 
-  useEffect(() => () => {
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-  }, []);
-
   async function send(patch: ClimatePatch) {
     const prev = state;
     const next = applyClimatePatch(state, patch, config);
     setState(next);
-    setFlash(true);
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-    flashTimer.current = setTimeout(() => setFlash(false), 500);
     try {
       const res = await fetch("/api/remote/climate", {
         method: "POST",
@@ -146,37 +135,26 @@ export function ClimateCard({
 
   return (
     <Card.Root
-      colorPalette={on ? "hazard" : "gray"}
+      colorPalette={on ? "teal" : "gray"}
       bg="bg.panel"
-      borderColor={on ? "hazard.muted" : "border.subtle"}
+      borderColor={on ? "teal.muted" : "border.subtle"}
       position="relative"
       overflow="hidden"
       transition="border-color 0.2s"
     >
-      {/* transmit pulse along the top edge */}
-      <Box
-        aria-hidden
-        position="absolute"
-        insetX="0"
-        top="0"
-        h="2px"
-        bg="hazard.solid"
-        opacity={flash ? 0.95 : 0}
-        transition="opacity 0.15s"
-      />
       <Card.Header>
         <HStack>
           <Circle
             size="10"
-            bg={on ? "hazard.subtle" : "bg.subtle"}
-            color={on ? "hazard.fg" : "fg.subtle"}
+            bg={on ? "teal.subtle" : "bg.subtle"}
+            color={on ? "teal.fg" : "fg.subtle"}
             borderWidth="1px"
-            borderColor={on ? "hazard.muted" : "border.subtle"}
+            borderColor={on ? "teal.muted" : "border.subtle"}
           >
             <DeviceIcon size={18} />
           </Circle>
           <Stack gap="0.5">
-            <Text fontFamily="heading" fontWeight="700" textTransform="uppercase" letterSpacing="0.02em">
+            <Text fontWeight="700">
               {device.name}
             </Text>
             <Eyebrow>{on ? MODE_LABEL[state.mode] : "Standby"} · Panasonic</Eyebrow>
@@ -190,7 +168,7 @@ export function ClimateCard({
           <Button
             size="sm"
             variant={on ? "solid" : "outline"}
-            colorPalette={on ? "hazard" : "gray"}
+            colorPalette={on ? "teal" : "gray"}
             onClick={() => send({ power: !on })}
           >
             <Icon as={Power} boxSize="4" />
@@ -213,10 +191,10 @@ export function ClimateCard({
             <Minus />
           </IconButton>
           <HStack align="baseline" gap="1" minW="28" justify="center">
-            <Readout fontSize="clamp(3rem, 12vw, 4.5rem)" color={on ? "hazard.fg" : "fg.subtle"}>
+            <Readout fontSize="clamp(3rem, 12vw, 4.5rem)" color={on ? "teal.fg" : "fg.subtle"}>
               {state.tempC}
             </Readout>
-            <Text fontFamily="mono" fontSize="lg" color="fg.subtle">
+            <Text fontSize="lg" color="fg.subtle">
               °C
             </Text>
           </HStack>
@@ -259,7 +237,7 @@ export function ClimateCard({
 
         <HStack gap="2" color="fg.subtle">
           <Box boxSize="1.5" rounded="full" bg="fg.subtle" />
-          <Metric fontSize="10px" letterSpacing="0.1em" textTransform="uppercase">
+          <Metric fontSize="10px">
             Commanded · not sensor-verified
           </Metric>
         </HStack>

@@ -26,10 +26,10 @@ import { Eyebrow, Metric, Readout } from "@/components/shared/bits";
 type StateMeta = { label: string; palette: string; dot: string };
 
 const STATE_META: Record<string, StateMeta> = {
-  idle: { label: "READY", palette: "gray", dot: "fg.subtle" },
-  hanging: { label: "ON THE BAR", palette: "hazard", dot: "hazard.solid" },
-  rep_up: { label: "PULLING", palette: "hazard", dot: "hazard.solid" },
-  offline: { label: "DEVICE OFFLINE", palette: "danger", dot: "danger.solid" },
+  idle: { label: "Ready", palette: "gray", dot: "fg.subtle" },
+  hanging: { label: "On the bar", palette: "teal", dot: "teal.solid" },
+  rep_up: { label: "Pulling", palette: "teal", dot: "teal.solid" },
+  offline: { label: "Device offline", palette: "danger", dot: "danger.solid" },
 };
 
 export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) {
@@ -84,7 +84,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
         animation={flash > 0 ? "ih-flash 0.5s ease-out" : undefined}
         style={{
           background:
-            "radial-gradient(60% 50% at 50% 40%, color-mix(in srgb, var(--chakra-colors-hazard-solid) 20%, transparent), transparent 70%)",
+            "radial-gradient(60% 50% at 50% 40%, color-mix(in srgb, var(--chakra-colors-teal-solid) 20%, transparent), transparent 70%)",
         }}
       />
 
@@ -94,7 +94,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
           position="relative"
           bg="bg.panel"
           borderWidth="1px"
-          borderColor={active ? "hazard.muted" : "border.subtle"}
+          borderColor={active ? "teal.muted" : "border.subtle"}
           rounded="lg"
           overflow="hidden"
           className="ih-machined"
@@ -105,7 +105,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
             <Box position="absolute" top="0" insetX="0" h="3px" className="ih-stripe" />
           ) : null}
 
-          {/* faint hazard wash from the top while active */}
+          {/* faint teal wash from the top while active */}
           <Box
             position="absolute"
             inset="0"
@@ -114,7 +114,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
             transition="opacity 0.4s ease-out"
             style={{
               background:
-                "radial-gradient(95% 55% at 50% -10%, color-mix(in srgb, var(--chakra-colors-hazard-solid) 9%, transparent), transparent 60%)",
+                "radial-gradient(95% 55% at 50% -10%, color-mix(in srgb, var(--chakra-colors-teal-solid) 9%, transparent), transparent 60%)",
             }}
           />
 
@@ -130,11 +130,9 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
                 colorPalette={meta.palette}
                 variant="surface"
                 size="lg"
-                rounded="sm"
-                fontFamily="mono"
-                fontWeight="500"
-                textTransform="uppercase"
-                letterSpacing="0.2em"
+                rounded="full"
+                fontWeight="600"
+                letterSpacing="0.01em"
               >
                 <Box
                   rounded="full"
@@ -145,10 +143,10 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
                 {meta.label}
               </Badge>
 
-              <HStack gap="1.5" fontFamily="mono" fontSize="11px" color="fg.subtle">
+              <HStack gap="1.5" fontSize="xs" color="fg.subtle">
                 {connected ? (
                   <>
-                    <Text letterSpacing="0.1em">STREAM</Text>
+                    <Text>Stream</Text>
                     <Box boxSize="1.5" rounded="full" bg="online.solid" />
                     <Text color="fg.muted">live</Text>
                   </>
@@ -170,13 +168,13 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
             <Flex direction="column" align="center" justify="center" flex="1" py="6">
               <Readout
                 key={repTick}
-                color="hazard.fg"
+                color="teal.fg"
                 animation={repTick > 0 ? "ih-pop 0.28s cubic-bezier(0.16,1,0.3,1)" : undefined}
                 style={{ fontSize: "clamp(7rem, 30vw, 17rem)" }}
               >
                 {state.reps}
               </Readout>
-              <Eyebrow mt="1" fontSize="sm" letterSpacing="0.5em" color="fg.muted">
+              <Eyebrow mt="2" fontSize="sm" letterSpacing="0.16em" color="fg.muted">
                 reps
               </Eyebrow>
 
@@ -204,10 +202,8 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
             {!active && !lastSessionEnd && (
               <Text
                 textAlign="center"
-                fontFamily="mono"
                 fontSize="sm"
                 color="fg.subtle"
-                letterSpacing="0.04em"
               >
                 {connected
                   ? "Grab the bar to start a session"
@@ -277,31 +273,26 @@ function SessionSummary({
                       gap="2"
                       bg="hazard.solid"
                       color="hazard.contrast"
-                      rounded="sm"
+                      rounded="full"
                       py="2"
-                      fontFamily="heading"
-                      fontWeight="800"
-                      textTransform="uppercase"
-                      letterSpacing="0.14em"
+                      fontWeight="700"
+                      letterSpacing="0.01em"
                       animation="ih-stamp 0.45s cubic-bezier(0.16,1,0.3,1)"
                     >
-                      ★ New Personal Record
+                      ★ New personal record
                     </HStack>
                   )}
 
                   <HStack align="baseline" gap="3">
-                    <Readout fontSize="6xl" color={isPull ? "hazard.fg" : "fg"}>
+                    <Readout fontSize="6xl" color={isPull ? "teal.fg" : "fg"}>
                       {isPull ? shown.reps : formatHang(shown.maxHangMs)}
                     </Readout>
                     <Text
-                      fontFamily="heading"
-                      fontWeight="700"
+                      fontWeight="600"
                       fontSize="2xl"
-                      textTransform="uppercase"
-                      letterSpacing="0.06em"
                       color="fg.muted"
                     >
-                      {isPull ? "Reps" : "Hang"}
+                      {isPull ? "reps" : "hang"}
                     </Text>
                   </HStack>
 
@@ -318,10 +309,7 @@ function SessionSummary({
                           key={r}
                           colorPalette="hazard"
                           variant="surface"
-                          rounded="sm"
-                          fontFamily="mono"
-                          textTransform="uppercase"
-                          letterSpacing="0.08em"
+                          rounded="full"
                         >
                           ★ {RECORD_LABELS[r] ?? r}
                         </Badge>
@@ -357,8 +345,8 @@ function SummaryStat({
       py="3"
       textAlign="center"
     >
-      <Eyebrow fontSize="9px">{label}</Eyebrow>
-      <Metric mt="1.5" fontSize="lg" color={accent ? "hazard.fg" : "fg"}>
+      <Eyebrow fontSize="10px">{label}</Eyebrow>
+      <Metric mt="1.5" fontSize="lg" color={accent ? "teal.fg" : "fg"}>
         {value}
       </Metric>
     </Box>

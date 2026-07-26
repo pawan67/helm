@@ -146,7 +146,6 @@ export default async function RecordsPage() {
                     {unit(type) ? <Eyebrow>{unit(type)}</Eyebrow> : null}
                   </HStack>
                   <Text
-                    fontFamily="mono"
                     fontSize="xs"
                     color="fg.subtle"
                     fontVariantNumeric="tabular-nums"
