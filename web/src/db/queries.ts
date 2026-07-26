@@ -1,4 +1,4 @@
-import { desc, gte, eq, sql as dsql } from "drizzle-orm";
+import { desc, gte, eq, and, sql as dsql } from "drizzle-orm";
 import { db } from "./index";
 import {
   sessions,
@@ -20,6 +20,51 @@ import {
 
 export async function getRecentSessions(limit = 20) {
   return db.select().from(sessions).orderBy(desc(sessions.startedAt)).limit(limit);
+}
+
+export type SessionFilter = {
+  type?: "pullup_set" | "dead_hang";
+  /** Inclusive local calendar date (YYYY-MM-DD). */
+  from?: string;
+  /** Inclusive local calendar date (YYYY-MM-DD). */
+  to?: string;
+  limit?: number;
+  offset?: number;
+};
+
+/**
+ * A filtered, paginated slice of sessions (newest first) plus the total row
+ * count that matches the filter — so the client can page without re-counting.
+ * Date bounds compare against the session's *local* calendar day (the same
+ * timezone the rollups use), not the raw UTC instant.
+ */
+export async function getSessionsPage(filter: SessionFilter = {}) {
+  const limit = Math.min(100, Math.max(1, filter.limit ?? 20));
+  const offset = Math.max(0, filter.offset ?? 0);
+  const tz = env.timezone;
+  const localDay = dsql`(${sessions.startedAt} AT TIME ZONE ${tz})::date`;
+
+  const conds = [];
+  if (filter.type) conds.push(eq(sessions.type, filter.type));
+  if (filter.from) conds.push(dsql`${localDay} >= ${filter.from}::date`);
+  if (filter.to) conds.push(dsql`${localDay} <= ${filter.to}::date`);
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(sessions)
+      .where(where)
+      .orderBy(desc(sessions.startedAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ total: dsql<number>`count(*)::int` })
+      .from(sessions)
+      .where(where),
+  ]);
+
+  return { rows, total };
 }
 
 export async function getSessionWithReps(id: string) {

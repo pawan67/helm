@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, sql as dsql } from "drizzle-orm";
+import { eq, and, gte, lt, inArray, sql as dsql } from "drizzle-orm";
 import { db } from "./index";
 import {
   sessions,
@@ -328,6 +328,32 @@ export async function deleteSession(id: string): Promise<boolean> {
   await recomputeDailyStats(localDate(new Date(existing.endedAt)));
   await recomputePersonalRecords();
   return true;
+}
+
+/**
+ * Delete many sessions at once (rep_events cascade). Each affected local day is
+ * recomputed once (not per row), then records are refreshed a single time.
+ * Returns how many rows actually existed and were removed.
+ */
+export async function deleteSessions(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const existing = await db
+    .select({ id: sessions.id, endedAt: sessions.endedAt })
+    .from(sessions)
+    .where(inArray(sessions.id, ids));
+  if (existing.length === 0) return 0;
+
+  await db.delete(sessions).where(
+    inArray(
+      sessions.id,
+      existing.map((s) => s.id),
+    ),
+  );
+
+  const days = new Set(existing.map((s) => localDate(new Date(s.endedAt))));
+  for (const day of days) await recomputeDailyStats(day);
+  await recomputePersonalRecords();
+  return existing.length;
 }
 
 /** Fetch settings, creating the default row on first access. */

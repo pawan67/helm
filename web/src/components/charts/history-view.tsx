@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Card,
-  EmptyState,
   Grid,
   HStack,
   Icon,
@@ -29,15 +28,11 @@ import {
   BarChart3,
   CalendarCheck,
   Dumbbell,
-  History,
   Timer,
   Waves,
 } from "lucide-react";
-import type { DailyStat, Session } from "@/db/schema";
-import { SessionRow } from "@/components/session-row";
-import { SessionRowActions } from "@/components/session-row-actions";
-import { SessionForm } from "@/components/session-form";
-import { toaster } from "@/components/ui/toaster";
+import type { DailyStat } from "@/db/schema";
+import { SessionsTable } from "@/components/charts/sessions-table";
 import { Eyebrow, StatCard } from "@/components/shared/bits";
 import { formatHang } from "@/lib/time";
 
@@ -63,34 +58,20 @@ type ChartDatum = {
   hit: boolean;
 };
 
-export function HistoryView({
-  initialDays,
-  initialSessions,
-}: {
-  initialDays: DailyStat[];
-  initialSessions: Session[];
-}) {
+export function HistoryView({ initialDays }: { initialDays: DailyStat[] }) {
   const [range, setRange] = useState(30);
   const [days, setDays] = useState<DailyStat[]>(initialDays);
-  const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [loading, setLoading] = useState(false);
   const [reload, setReload] = useState(0);
-
-  // Session editor state: null target = "add", a Session = "edit".
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Session | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      fetch(`/api/stats?days=${range}`).then((r) => r.json()),
-      fetch(`/api/sessions?limit=60`).then((r) => r.json()),
-    ])
-      .then(([s, se]) => {
+    fetch(`/api/stats?days=${range}`)
+      .then((r) => r.json())
+      .then((s) => {
         if (cancelled) return;
         setDays(s.days ?? []);
-        setSessions(se.sessions ?? []);
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -98,21 +79,9 @@ export function HistoryView({
     };
   }, [range, reload]);
 
+  // Editing/deleting a session in the table changes the daily rollups, so let
+  // the table nudge the charts to refetch.
   const refresh = () => setReload((n) => n + 1);
-
-  function openEdit(session: Session) {
-    setEditing(session);
-    setFormOpen(true);
-  }
-  async function removeSession(id: string) {
-    const res = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      toaster.create({ title: "Session deleted", type: "success" });
-      refresh();
-    } else {
-      toaster.create({ title: "Couldn't delete the session", type: "error" });
-    }
-  }
 
   const chartData: ChartDatum[] = useMemo(
     () =>
@@ -328,72 +297,8 @@ export function HistoryView({
         </Card.Body>
       </Card.Root>
 
-      {/* All sessions */}
-      <Card.Root bg="bg.panel">
-        <Card.Header pb="0">
-          <HStack justify="space-between">
-            <HStack gap="2" color="fg.muted">
-              <Icon as={History} boxSize="3.5" color="fg.muted" />
-              <Eyebrow>All sessions</Eyebrow>
-            </HStack>
-            {sessions.length > 0 ? (
-              <Text
-                fontFamily="mono"
-                fontSize="xs"
-                color="fg.subtle"
-                fontVariantNumeric="tabular-nums"
-              >
-                {sessions.length}
-              </Text>
-            ) : null}
-          </HStack>
-        </Card.Header>
-        <Card.Body opacity={loading ? 0.6 : 1} transition="opacity 0.2s">
-          {sessions.length === 0 ? (
-            <EmptyState.Root>
-              <EmptyState.Content>
-                <EmptyState.Indicator>
-                  <Icon as={History} />
-                </EmptyState.Indicator>
-                <EmptyState.Title>No sessions logged</EmptyState.Title>
-                <EmptyState.Description>
-                  Your recorded sets and hangs will appear here as you train.
-                </EmptyState.Description>
-              </EmptyState.Content>
-            </EmptyState.Root>
-          ) : (
-            <Stack gap="0">
-              {sessions.map((s) => {
-                const hydrated: Session = {
-                  ...s,
-                  startedAt: new Date(s.startedAt),
-                  endedAt: new Date(s.endedAt),
-                  createdAt: new Date(s.createdAt),
-                };
-                return (
-                  <SessionRow
-                    key={s.id}
-                    session={hydrated}
-                    actions={
-                      <SessionRowActions
-                        onEdit={() => openEdit(hydrated)}
-                        onDelete={() => removeSession(s.id)}
-                      />
-                    }
-                  />
-                );
-              })}
-            </Stack>
-          )}
-        </Card.Body>
-      </Card.Root>
-
-      <SessionForm
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        session={editing}
-        onSaved={refresh}
-      />
+      {/* All sessions — filterable, selectable table */}
+      <SessionsTable onMutate={refresh} />
     </Stack>
   );
 }
