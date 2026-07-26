@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -12,6 +13,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import type { IrClimateConfig, IrClimateState } from "../lib/ir-climate";
+import type { ScheduleAction } from "../lib/schedule";
 
 /** A session is classified once it ends, based on whether any reps happened. */
 export const sessionTypeEnum = pgEnum("session_type", ["pullup_set", "dead_hang"]);
@@ -186,8 +188,59 @@ export const irButtons = pgTable(
   (t) => [index("ir_buttons_device_idx").on(t.deviceId)],
 );
 
+/**
+ * A single timed action against an IR device. One row = one cron-like entry;
+ * "AC on at 22:00 / off at 06:00" is two rows. The scheduler (lib/scheduler.ts)
+ * fires the `action` at `atMinute` local time on the chosen `days`.
+ */
+export const schedules = pgTable(
+  "schedules",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Optional label; blank falls back to an auto summary in the UI. */
+    name: text("name").notNull().default(""),
+    enabled: boolean("enabled").notNull().default(true),
+    deviceId: uuid("device_id")
+      .notNull()
+      .references(() => irDevices.id, { onDelete: "cascade" }),
+    /** Climate patch or a button fire — see lib/schedule.ts. */
+    action: jsonb("action").$type<ScheduleAction>().notNull(),
+    /** Local minutes since midnight (0–1439) when this runs. */
+    atMinute: integer("at_minute").notNull(),
+    /** Weekdays to run on: 0=Sun … 6=Sat. Empty = every day. */
+    days: integer("days")
+      .array()
+      .notNull()
+      .default(sql`'{}'::integer[]`),
+    /** When it last fired — used to dedupe within a minute. */
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("schedules_enabled_idx").on(t.enabled, t.atMinute)],
+);
+
+/**
+ * A one-tap action link: an unguessable URL (`/a/<key>`) that fires an IR action
+ * with no login. Lets a Bixby Quick Command, NFC tag, home-screen shortcut, or
+ * widget control the AC/fan. Same `action` shape as a schedule.
+ */
+export const actionLinks = pgTable("action_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  label: text("label").notNull(),
+  /** Unguessable URL secret — the shortcut is `/a/<key>`. */
+  key: text("key").notNull().unique(),
+  deviceId: uuid("device_id")
+    .notNull()
+    .references(() => irDevices.id, { onDelete: "cascade" }),
+  action: jsonb("action").$type<ScheduleAction>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type IrDevice = typeof irDevices.$inferSelect;
 export type NewIrDevice = typeof irDevices.$inferInsert;
+export type Schedule = typeof schedules.$inferSelect;
+export type NewSchedule = typeof schedules.$inferInsert;
+export type ActionLink = typeof actionLinks.$inferSelect;
 export type IrButton = typeof irButtons.$inferSelect;
 export type NewIrButton = typeof irButtons.$inferInsert;
 

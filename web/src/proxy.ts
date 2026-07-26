@@ -9,7 +9,9 @@ import { verifyToken, COOKIE_NAME } from "@/lib/session";
  * Next 16 renamed the `middleware` convention to `proxy` (runs on the Node.js
  * runtime — jose works here). See node_modules/next/dist/docs upgrade guide.
  */
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+// `/a/<key>` action links are gated by their unguessable key, not the cookie —
+// so a Bixby Quick Command / NFC tag / widget can fire them without logging in.
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/a"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;

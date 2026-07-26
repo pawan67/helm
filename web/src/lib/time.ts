@@ -15,6 +15,31 @@ export function localDate(instant: Date, timeZone = env.timezone): string {
   }).format(instant);
 }
 
+/**
+ * The app-local wall clock for an instant: minutes since midnight (0–1439) and
+ * weekday (0=Sun … 6=Sat). Drives the schedule matcher so "22:00 on weekdays"
+ * lines up with the user's clock, not UTC.
+ */
+export function localClock(
+  instant: Date,
+  timeZone = env.timezone,
+): { minute: number; weekday: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+  }).formatToParts(instant);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const hour = Number(get("hour")) % 24; // some ICU builds emit "24" at midnight
+  const minute = Number(get("minute"));
+  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(
+    get("weekday"),
+  );
+  return { minute: hour * 60 + minute, weekday };
+}
+
 /** Add (or subtract) whole days to a YYYY-MM-DD string, timezone-agnostic. */
 export function addDays(dateStr: string, delta: number): string {
   const [y, m, d] = dateStr.split("-").map(Number);
