@@ -1,6 +1,6 @@
 /*
  * HELM globals. Chakra (custom `system`) provides the reset + tokens; this
- * file adds what tokens can't: the soft panel depth, the teal live-signal
+ * file adds what tokens can't: the soft panel depth, the lime live-signal
  * motif, a quiet rounded scrollbar, and the motion keyframes referenced via
  * Chakra's `animation` style prop.
  */
@@ -37,22 +37,22 @@ body {
 }
 
 /*
- * Live signal — a soft teal wash. Marks a LIVE surface, never decoration.
+ * Live signal — a soft lime wash. Marks a LIVE surface, never decoration.
  * `.ih-stripe` is the bold banner fill; `.ih-stripe-edge` is a thin top rule.
  */
 .ih-stripe {
   background-image: linear-gradient(
     90deg,
-    color-mix(in oklch, var(--chakra-colors-teal-solid) 85%, transparent),
-    color-mix(in oklch, var(--chakra-colors-teal-solid) 45%, transparent)
+    color-mix(in oklch, var(--chakra-colors-lime-solid) 85%, transparent),
+    color-mix(in oklch, var(--chakra-colors-lime-solid) 45%, transparent)
   );
 }
 .ih-stripe-edge {
   background-image: linear-gradient(
     90deg,
     transparent,
-    var(--chakra-colors-teal-solid) 20%,
-    var(--chakra-colors-teal-solid) 80%,
+    var(--chakra-colors-lime-solid) 20%,
+    var(--chakra-colors-lime-solid) 80%,
     transparent
   );
 }

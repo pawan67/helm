@@ -14,10 +14,10 @@ colors:
   fg: "oklch(0.96 0.004 260)"
   fg-muted: "oklch(0.74 0.006 260)"
   fg-subtle: "oklch(0.64 0.007 260)"
-  # Teal — the one primary signal (hue 191): live / interactive / device-on.
-  teal-solid: "oklch(0.73 0.12 191)"
-  teal-fg: "oklch(0.83 0.10 190)"
-  teal-ink: "oklch(0.18 0.03 192)"
+  # Lime — the one primary signal (chartreuse, hue 128): live / interactive / device-on.
+  lime-solid: "oklch(0.87 0.21 128)"
+  lime-fg: "oklch(0.91 0.17 128)"
+  lime-ink: "oklch(0.20 0.03 130)"
   # Cyan — endurance & humidity (hue 246): hang time, moisture.
   cyan-solid: "oklch(0.71 0.12 246)"
   cyan-fg: "oklch(0.82 0.085 245)"
@@ -73,8 +73,8 @@ rounded:
   pill: "999px"
 components:
   button-primary:
-    backgroundColor: "{colors.teal-solid}"
-    textColor: "{colors.teal-ink}"
+    backgroundColor: "{colors.lime-solid}"
+    textColor: "{colors.lime-ink}"
     rounded: "{rounded.sm}"
   button-secondary:
     backgroundColor: "{colors.surface-subtle}"
@@ -98,7 +98,7 @@ components:
     rounded: "{rounded.md}"
   nav-item-active:
     backgroundColor: "{colors.surface-muted}"
-    textColor: "{colors.teal-fg}"
+    textColor: "{colors.lime-fg}"
     rounded: "{rounded.md}"
   badge-pill:
     backgroundColor: "{colors.surface-subtle}"
@@ -112,28 +112,28 @@ components:
 
 **Creative North Star: "The Quiet Helm"**
 
-HELM is a calm, premium instrument panel for the systems one operator runs under their own roof: their training on the bar, the climate of their rooms, the devices they command by infrared. The surface is soft layered slate under low light, and it stays visually silent until something matters, at which point a single calm teal signal lights the one thing worth reading. The feeling is a well-made control panel at dusk, not a cloud app: sovereign, quiet, and legible across a room.
+HELM is a calm, premium instrument panel for the systems one operator runs under their own roof: their training on the bar, the climate of their rooms, the devices they command by infrared. The surface is soft layered slate under low light, and it stays visually silent until something matters, at which point a single bold lime signal lights the one thing worth reading. The feeling is a well-made control panel at dusk, not a cloud app: sovereign, quiet, and legible across a room.
 
 The system is dark-only by intent (a console glanced at on a wall or a propped-up phone in varied light) and telemetry-first. The dominant reading on any screen carries the mass; everything else recedes into muted slate. Corners are softly rounded and depth is gentle, so the panel reads as premium hardware rather than a flat spec sheet, but it never tips into playful: no pastel bubbles, no chatty assistant, no confetti. Warmth is reserved. The one warm color, amber, appears only when the operator has earned it.
 
 This system explicitly rejects the generic SaaS dashboard (identical rounded card grids, the big-number-hero template, gradient accents, the stock-component look), the consumer smart-home app (pastel round bubbles, "Good morning!" greeting cards, cloud dependency), the neon crypto / gamer look (glow on pure black, gradient text), and any cluttered, data-dense screen where nothing dominates.
 
 **Key Characteristics:**
-- Dark-only, soft-slate surface with a single teal signal.
+- Dark-only, soft-slate surface with a single lime signal.
 - One dominant, glanceable reading per screen; everything else muted.
 - Telemetry set in tabular mono; headings and hero numbers in a friendly geometric sans.
 - Softly rounded corners (6–24px) and gentle, layered depth, never flat and never glassy.
-- Reserved color: teal for "live / on," amber for reward only, green/red for device state.
+- Reserved color: lime for "live / on," amber for reward only, green/red for device state.
 
 ## 2. Colors
 
-A near-monochrome slate palette carrying one calm accent, with three functional signals held in reserve. Every neutral is faintly cooled toward hue 260 so the surface reads as slate, not dead gray; no value is pure black or pure white.
+A near-monochrome slate palette carrying one bold accent, with three functional signals held in reserve. Every neutral is faintly cooled toward hue 260 so the surface reads as slate, not dead gray; no value is pure black or pure white.
 
 ### Primary
-- **Signal Teal** (`oklch(0.73 0.12 191)`): the one primary voice. Primary buttons, active navigation, the live rep counter, the "session live" banner, device-on state, focus rings, text selection. Its lighter tint (`teal-fg` `oklch(0.83 0.10 190)`) is the readable teal for text and icons on slate; its dark ink (`teal-ink` `oklch(0.18 0.03 192)`) is the text color on a teal fill.
+- **Signal Lime** (`oklch(0.87 0.21 128)`): the one primary voice. Primary buttons, active navigation, the live rep counter, the "session live" banner, device-on state, focus rings, text selection. Its lighter tint (`lime-fg` `oklch(0.91 0.17 128)`) is the readable lime for text and icons on slate; its dark ink (`lime-ink` `oklch(0.20 0.03 130)`) is the text color on a lime fill.
 
 ### Secondary
-- **Endurance Cyan** (`oklch(0.71 0.12 246)`): a soft blue for duration and moisture, distinct from teal so "hang time" and "humidity" never read as "live." Used on the dead-hang metric, the hang-zone gauge band, and humidity readings. Text tint `cyan-fg` (`oklch(0.82 0.085 245)`).
+- **Endurance Cyan** (`oklch(0.71 0.12 246)`): a soft blue for duration and moisture, distinct from lime so "hang time" and "humidity" never read as "live." Used on the dead-hang metric, the hang-zone gauge band, and humidity readings. Text tint `cyan-fg` (`oklch(0.82 0.085 245)`).
 
 ### Tertiary
 - **Reward Amber** (`oklch(0.77 0.135 72)`): warm, softened from safety-orange to honey. Strictly the reward-and-heat color: streaks, personal records, goal-hit states, and temperature. It is never a primary action. Text tint `amber-fg` (`oklch(0.85 0.115 76)`); ink on fill `amber-ink` (`oklch(0.20 0.04 70)`).
@@ -150,7 +150,7 @@ A near-monochrome slate palette carrying one calm accent, with three functional 
 - **Fault Red** (`oklch(0.56 0.175 28)`): offline, destructive actions. Deep enough that its near-white ink (`danger-ink` `oklch(0.97 0.01 28)`) clears WCAG AA on a solid fill. Text tint `danger-fg` (`0.78` L).
 
 ### Named Rules
-**The One Signal Rule.** Teal means live, interactive, or on, and nothing else. It is the only accent used for primary actions and the only color that says "now." Do not spend it on decoration.
+**The One Signal Rule.** Lime means live, interactive, or on, and nothing else. It is the only accent used for primary actions and the only color that says "now." Do not spend it on decoration.
 
 **The Earned-Amber Rule.** Amber appears only as a reward or a heat reading: a streak, a PR, a hit goal, a temperature. It is never a button, never a nav state, never a default accent. Its rarity is what makes a PR land.
 
@@ -169,7 +169,7 @@ A near-monochrome slate palette carrying one calm accent, with three functional 
 - **Title** (600–700, ~1.25rem): card and dialog headings, device names.
 - **Body** (400–500, 1rem / 0.875rem): interactive text, paragraphs. Prose capped at 65–75ch.
 - **Metric** (mono, 500, tabular): timers, distances, dBm, temperatures, chart ticks, any small changing value.
-- **Eyebrow / Label** (600, 0.75rem and down to 9–11px, tracking 0.01em, `fg-subtle`): quiet section markers, often with a small teal tick.
+- **Eyebrow / Label** (600, 0.75rem and down to 9–11px, tracking 0.01em, `fg-subtle`): quiet section markers, often with a small lime tick.
 
 ### Named Rules
 **The Telemetry-Is-Mono Rule.** If a number changes on screen (a timer, a distance, a reading, a count), it is set in JetBrains Mono with `tabular-nums` so it never jitters or reflows. Static numbers may use the sans.
@@ -193,13 +193,13 @@ Soft and layered, never flat and never glassy. Depth is built from three cheap, 
 
 ### Buttons
 - **Shape:** softly rounded (8px, `rounded.sm`), body font at semibold. Never the case where a display face lands in a control.
-- **Primary:** solid Signal Teal fill with `teal-ink` text. Hover lifts one teal step.
+- **Primary:** solid Signal Lime fill with `lime-ink` text. Hover lifts one lime step.
 - **Destructive:** solid Fault Red fill with near-white `danger-ink` text (the deep red is what keeps it legible). Used for the primary confirm in a delete dialog; secondary destructive actions inside an edit flow use the outline variant instead.
 - **Secondary:** `surface-subtle` fill with a 1px border. **Ghost:** transparent, used for nav and low-emphasis actions.
 - **Touch:** interactive controls meant for look-away, across-the-room taps carry a ≥44px hit target (device toggles, climate mode/fan/swing).
 
 ### Chips / Badges
-- **Style:** fully rounded pill, a small state dot plus a label. Status badges pair hue with the dot and text so state never rides on color alone: teal (live), green (online), red (offline), amber (record).
+- **Style:** fully rounded pill, a small state dot plus a label. Status badges pair hue with the dot and text so state never rides on color alone: lime (live), green (online), red (offline), amber (record).
 
 ### Cards / Containers
 - **Corner Style:** 14px (`rounded.lg`) for cards, 24px (`rounded.2xl`) for stat tiles.
@@ -209,24 +209,24 @@ Soft and layered, never flat and never glassy. Depth is built from three cheap, 
 
 ### Inputs / Fields
 - **Style:** `surface-subtle` fill, 1px border, 10px radius, mono values where the field holds telemetry.
-- **Focus:** a teal focus ring (`teal-solid`). Sliders and the distance gauge are treated as instruments: chalk ticks, teal marker and threshold line.
+- **Focus:** a lime focus ring (`lime-solid`). Sliders and the distance gauge are treated as instruments: chalk ticks, lime marker and threshold line.
 
 ### Charts (Recharts)
-- **Style:** slate gridlines (`border-subtle`), one accent series per chart (teal for reps, amber for temperature, cyan for humidity), mono tick labels in `fg-subtle`, no decorative legends.
+- **Style:** slate gridlines (`border-subtle`), one accent series per chart (lime for reps, amber for temperature, cyan for humidity), mono tick labels in `fg-subtle`, no decorative legends.
 - **Axis numbers:** always rounded for display. Never render a raw interpolated float (`32.349999999999994`); format ticks to the reading's real precision (whole reps, one-decimal °C / %).
 
 ### Navigation
 - **Style:** a fixed 256px slate rail (drawer below `lg`), sectioned Overview / Body / Home / System with quiet uppercase-ish labels.
-- **States:** ghost by default (`fg-muted`); the active item gets a `surface-muted` fill, `teal-fg` label, and a 3px teal bar on its inner edge as a structural position marker (a deliberate indicator, not a decorative card stripe).
+- **States:** ghost by default (`fg-muted`); the active item gets a `surface-muted` fill, `lime-fg` label, and a 3px lime bar on its inner edge as a structural position marker (a deliberate indicator, not a decorative card stripe).
 
 ### Signature Component — The Live Readout
-The centerpiece of the Live screen: a hero rep count in the 800-weight sans at `clamp(7rem, 30vw, 17rem)`, tabular, teal, with a soft pop on each rep and a full-screen teal wash flash. A caution-teal stripe marks the panel as a live surface while a session runs. This is HELM's deliberate replacement for the SaaS hero-metric card: a bare stamped instrument reading that sits on the surface, not in a box.
+The centerpiece of the Live screen: a hero rep count in the 800-weight sans at `clamp(7rem, 30vw, 17rem)`, tabular, lime, with a soft pop on each rep and a full-screen lime wash flash. A caution-lime stripe marks the panel as a live surface while a session runs. This is HELM's deliberate replacement for the SaaS hero-metric card: a bare stamped instrument reading that sits on the surface, not in a box.
 
 ## 6. Do's and Don'ts
 
 ### Do:
 - **Do** keep one dominant reading per screen; mute everything else to `fg-muted` / `fg-subtle` slate.
-- **Do** spend teal only on live / interactive / on states, and amber only on earned reward and heat.
+- **Do** spend lime only on live / interactive / on states, and amber only on earned reward and heat.
 - **Do** set every changing number in JetBrains Mono with `tabular-nums`, and round chart-axis numbers to their real precision.
 - **Do** build depth from a tonal slate step plus a 1px border plus the `.ih-machined` sheen, in that order.
 - **Do** pair every status color with a dot, icon, or label (color is never the only signal).
@@ -237,7 +237,7 @@ The centerpiece of the Live screen: a hero rep count in the 800-weight sans at `
 - **Don't** build the generic SaaS dashboard: identical rounded card grids, the big-number-hero template, gradient accents, or the stock-component look.
 - **Don't** drift into the consumer smart-home app: pastel bubbles, a chatty assistant, "Good morning!" greeting cards, emoji, or confetti on a PR.
 - **Don't** use neon-on-black, gradient text (`background-clip: text`), or glow for energy; contrast and weight carry it.
-- **Don't** use teal for anything that isn't "live/on," or amber for anything that isn't a reward or a temperature.
+- **Don't** use lime for anything that isn't "live/on," or amber for anything that isn't a reward or a temperature.
 - **Don't** use a colored `border-left`/`border-right` greater than 1px as a decorative stripe on a card, callout, or list item.
 - **Don't** nest cards, or wrap a bare instrument reading in a card just to contain it.
 - **Don't** animate layout properties (`top`, `left`, `width`, `height`); move with `transform` and `opacity` only, ease-out, no bounce.

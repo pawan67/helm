@@ -206,7 +206,7 @@ export function DeviceDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button colorPalette="teal" onClick={save} loading={busy}>
+          <Button colorPalette="lime" onClick={save} loading={busy}>
             {editing ? "Save" : "Add"}
           </Button>
         </HStack>
@@ -359,7 +359,7 @@ export function ButtonDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button colorPalette="teal" onClick={save} loading={busy}>
+          <Button colorPalette="lime" onClick={save} loading={busy}>
             {editing ? "Save" : "Add"}
           </Button>
         </HStack>

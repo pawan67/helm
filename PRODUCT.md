@@ -76,10 +76,10 @@ devices, their server, no one else's.
    with no confirmation. When it cannot confirm, it says so plainly.
 4. **Built like an instrument.** Utilitarian and structural, softened to premium:
    gently rounded corners, real borders, honest surfaces, gentle depth over heavy
-   shadow. Decoration only where it aids reading (the teal live-stripe means
+   shadow. Decoration only where it aids reading (the lime live-stripe means
    "live", not "pretty").
 5. **Slate and signal, calm not clinical.** Soft layered slate surfaces, chalk-white
-   marks, and one calm teal signal that lights only what's live; warmth (amber) is
+   marks, and one bold lime signal that lights only what's live; warmth (amber) is
    reserved for reward and heat. Energy comes from contrast and weight, never glow
    or gradient. Glass only where it earns it (a sticky bar over scrolling content).
 6. **Instrument-grade trust.** Telemetry looks like telemetry: monospaced, tabular,
@@ -89,7 +89,7 @@ devices, their server, no one else's.
 ## Accessibility & Inclusion
 
 - Target **WCAG 2.1 AA** contrast. The chalk-on-slate palette clears it comfortably;
-  verify accent text and any solid-fill button (teal, amber, red) against its
+  verify accent text and any solid-fill button (lime, amber, red) against its
   background — label text on slate must reach 4.5:1.
 - **Never signal by color alone.** Online/offline, live/idle, on/off, PR/normal each
   carry a shape, label or icon in addition to hue (color-blind safe).

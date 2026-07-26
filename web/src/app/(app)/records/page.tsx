@@ -31,7 +31,7 @@ const META: Record<
 > = {
   most_reps_set: {
     icon: Trophy,
-    accent: "teal",
+    accent: "lime",
     desc: "Reps in one unbroken set",
   },
   most_reps_day: {
@@ -185,7 +185,7 @@ export default async function RecordsPage() {
             value={summary.currentStreak}
             unit="days"
             icon={Flame}
-            accent="teal"
+            accent="lime"
             sub="Days hitting goal, back to back"
           />
           <StatCard

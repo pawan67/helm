@@ -94,9 +94,9 @@ export function DeviceCard({
                 onClick={() => (editMode ? setDialog({ open: true, button: b }) : fire(b))}
                 position="relative"
                 borderWidth="1px"
-                borderColor={isFiring ? "teal.solid" : "border.subtle"}
-                bg={isFiring ? "teal.subtle" : "bg.subtle"}
-                color={isFiring ? "teal.fg" : "fg.muted"}
+                borderColor={isFiring ? "lime.solid" : "border.subtle"}
+                bg={isFiring ? "lime.subtle" : "bg.subtle"}
+                color={isFiring ? "lime.fg" : "fg.muted"}
                 rounded="md"
                 py="3"
                 px="2"
@@ -140,7 +140,7 @@ export function DeviceCard({
               rounded="md"
               minH="20"
               transition="all 0.12s"
-              _hover={{ borderColor: "teal.solid", color: "teal.fg" }}
+              _hover={{ borderColor: "lime.solid", color: "lime.fg" }}
             >
               <Stack gap="1" align="center" justify="center" h="full">
                 <Plus size={20} />

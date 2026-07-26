@@ -1,7 +1,7 @@
 /**
  * HELM design system — a calm, premium home & body console.
  *
- * Soft layered slate under a single calm "teal" signal, rounded corners, a
+ * Soft layered slate under a single bright "lime" signal, rounded corners, a
  * friendly geometric typeface, and telemetry that stays quiet until it matters.
  * The app is dark-only by design (a console on a wall), so tokens are defined
  * flat: the same value in _light and _dark.
@@ -9,7 +9,7 @@
  * Built on Chakra's defaultConfig, then overridden:
  *  - neutral scale + bg/fg/border → a soft, faintly-cool slate
  *  - accent palettes:
- *      teal   — the primary signal: live / interactive / device-on
+ *      lime   — the primary signal: live / interactive / device-on
  *      cyan   — a soft blue for endurance (hang time, humidity)
  *      hazard — warm amber, reserved for reward + heat (streaks, PRs, goals, temp)
  *      online — green, device ready / connected
@@ -45,7 +45,7 @@ const paletteFrom = (name: string, contrast: string) => ({
 });
 
 // Dark ink used as the readable text color on a bright accent fill.
-const INK_TEAL = "oklch(0.20 0.03 130)"; // dark chartreuse: text on a lime fill
+const INK_LIME = "oklch(0.20 0.03 130)"; // dark chartreuse: text on a lime fill
 const INK_CYAN = "oklch(0.18 0.03 246)";
 const INK_AMBER = "oklch(0.20 0.04 70)";
 const INK_GREEN = "oklch(0.17 0.03 150)";
@@ -55,8 +55,8 @@ const config = defineConfig({
   cssVarsPrefix: "chakra",
   globalCss: {
     "::selection": {
-      background: "teal.solid",
-      color: "teal.contrast",
+      background: "lime.solid",
+      color: "lime.contrast",
     },
     // Tabular figures everywhere numbers change, so counters never jitter.
     "[data-tnum]": {
@@ -110,12 +110,10 @@ const config = defineConfig({
           950: { value: "oklch(0.19 0.006 260)" },
         },
 
-        // Lime — the primary signal (chartreuse, hue 128). Live / interactive /
-        // on. NOTE: still keyed `teal` so every call site + CSS var
-        // (--chakra-colors-teal-*) renders lime with zero churn; a clean rename
-        // to `lime` can follow once the direction sticks. Bright by nature, so
-        // solid fills take a dark ink (INK_TEAL below), like the reference bars.
-        teal: {
+        // Lime — the primary signal (chartreuse, hue 128): live / interactive /
+        // on, used boldly. Bright by nature, so solid fills take a dark ink
+        // (INK_LIME below) for legible text, like the reference's lime bars.
+        lime: {
           50: { value: "oklch(0.97 0.04 128)" },
           100: { value: "oklch(0.95 0.08 128)" },
           200: { value: "oklch(0.93 0.13 128)" },
@@ -229,19 +227,19 @@ const config = defineConfig({
           subtle: flat("oklch(0.285 0.008 260)"),
           emphasized: flat("oklch(0.42 0.009 260)"),
         },
-        focusRing: ref("colors.teal.500"),
+        focusRing: ref("colors.lime.500"),
 
         // First-class accent palettes (mirror Chakra's built-in palette shape).
-        teal: paletteFrom("teal", INK_TEAL),
+        lime: paletteFrom("lime", INK_LIME),
         cyan: paletteFrom("cyan", INK_CYAN),
         hazard: paletteFrom("hazard", INK_AMBER),
         online: paletteFrom("online", INK_GREEN),
         danger: paletteFrom("danger", INK_RED),
 
         // Legacy-palette remaps so untouched call sites stay on-brand:
-        //   orange → hazard (warm)   purple → teal (primary)   red → danger
+        //   orange → hazard (warm)   purple → lime (primary)   red → danger
         orange: aliasOf("hazard", INK_AMBER),
-        purple: aliasOf("teal", INK_TEAL),
+        purple: aliasOf("lime", INK_LIME),
         red: aliasOf("danger", INK_RED),
       },
     },

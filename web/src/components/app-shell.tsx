@@ -89,7 +89,7 @@ function Brand() {
           Helm
         </Text>
         <HStack gap="1.5" mt="1">
-          <Box boxSize="1.5" rounded="full" bg="teal.solid" />
+          <Box boxSize="1.5" rounded="full" bg="lime.solid" />
           <Text fontSize="11px" fontWeight="medium" color="fg.subtle">
             Operator console
           </Text>
@@ -214,8 +214,8 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                       rounded="md"
                       fontWeight={active ? "600" : "500"}
                       bg={active ? "bg.muted" : undefined}
-                      color={active ? "teal.fg" : "fg.muted"}
-                      _hover={{ bg: "bg.muted", color: active ? "teal.fg" : "fg" }}
+                      color={active ? "lime.fg" : "fg.muted"}
+                      _hover={{ bg: "bg.muted", color: active ? "lime.fg" : "fg" }}
                     >
                       <Link href={item.href} onClick={onNavigate}>
                         {active ? (
@@ -226,7 +226,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                             transform="translateY(-50%)"
                             w="3px"
                             h="56%"
-                            bg="teal.solid"
+                            bg="lime.solid"
                             rounded="full"
                           />
                         ) : null}
@@ -308,13 +308,13 @@ function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Box
           boxSize="2"
           rounded="full"
-          bg={active ? "teal.solid" : connected ? "online.solid" : "danger.solid"}
+          bg={active ? "lime.solid" : connected ? "online.solid" : "danger.solid"}
           animation={active ? "ih-blink 1.1s ease-in-out infinite" : undefined}
         />
         <Text
           fontSize="sm"
           fontWeight="medium"
-          color={active ? "teal.fg" : "fg.muted"}
+          color={active ? "lime.fg" : "fg.muted"}
         >
           {active ? "Session live on the bar" : "Standing by"}
         </Text>

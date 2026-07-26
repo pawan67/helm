@@ -83,9 +83,9 @@ function ToggleRow({
               minW="12"
               minH="11"
               variant={active ? "solid" : "outline"}
-              colorPalette={active ? "teal" : "gray"}
-              color={active ? "teal.contrast" : "fg.muted"}
-              borderColor={active ? "teal.solid" : "border.subtle"}
+              colorPalette={active ? "lime" : "gray"}
+              color={active ? "lime.contrast" : "fg.muted"}
+              borderColor={active ? "lime.solid" : "border.subtle"}
               onClick={() => onSelect(opt)}
             >
               {labels[opt] ?? opt}
@@ -138,9 +138,9 @@ export function ClimateCard({
 
   return (
     <Card.Root
-      colorPalette={on ? "teal" : "gray"}
+      colorPalette={on ? "lime" : "gray"}
       bg="bg.panel"
-      borderColor={on ? "teal.muted" : "border.subtle"}
+      borderColor={on ? "lime.muted" : "border.subtle"}
       position="relative"
       overflow="hidden"
       transition="border-color 0.2s"
@@ -149,10 +149,10 @@ export function ClimateCard({
         <HStack>
           <Circle
             size="10"
-            bg={on ? "teal.subtle" : "bg.subtle"}
-            color={on ? "teal.fg" : "fg.subtle"}
+            bg={on ? "lime.subtle" : "bg.subtle"}
+            color={on ? "lime.fg" : "fg.subtle"}
             borderWidth="1px"
-            borderColor={on ? "teal.muted" : "border.subtle"}
+            borderColor={on ? "lime.muted" : "border.subtle"}
           >
             <DeviceIcon size={18} />
           </Circle>
@@ -171,7 +171,7 @@ export function ClimateCard({
           <Button
             size="sm"
             variant={on ? "solid" : "outline"}
-            colorPalette={on ? "teal" : "gray"}
+            colorPalette={on ? "lime" : "gray"}
             onClick={() => send({ power: !on })}
           >
             <Icon as={Power} boxSize="4" />
@@ -194,7 +194,7 @@ export function ClimateCard({
             <Minus />
           </IconButton>
           <HStack align="baseline" gap="1" minW="28" justify="center">
-            <Readout fontSize="clamp(3rem, 12vw, 4.5rem)" color={on ? "teal.fg" : "fg.subtle"}>
+            <Readout fontSize="clamp(3rem, 12vw, 4.5rem)" color={on ? "lime.fg" : "fg.subtle"}>
               {state.tempC}
             </Readout>
             <Text fontSize="lg" color="fg.subtle">

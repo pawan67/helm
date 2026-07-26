@@ -30,7 +30,7 @@ export function SessionRow({
 }) {
   const isPull = session.type === "pullup_set";
   const started = new Date(session.startedAt);
-  const accent = isPull ? "teal" : "cyan";
+  const accent = isPull ? "lime" : "cyan";
 
   return (
     <Flex

@@ -186,7 +186,7 @@ export function SessionForm({
                 <Button variant="outline">Cancel</Button>
               </Dialog.ActionTrigger>
               <Button
-                colorPalette="teal"
+                colorPalette="lime"
                 onClick={save}
                 loading={saving}
                 loadingText="Saving…"

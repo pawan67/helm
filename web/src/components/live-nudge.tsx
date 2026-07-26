@@ -19,7 +19,7 @@ export function LiveNudge() {
       asChild
       align="center"
       gap="3"
-      colorPalette="teal"
+      colorPalette="lime"
       borderWidth="1px"
       borderColor="colorPalette.muted"
       bg="colorPalette.subtle"

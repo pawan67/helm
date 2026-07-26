@@ -1,5 +1,5 @@
 /**
- * HELM mark — a helm wheel on a soft-rounded slate plate: teal rim and grips
+ * HELM mark — a helm wheel on a soft-rounded slate plate: lime rim and grips
  * (the same calm signal as the rest of the system), chalk spokes and hub. The
  * wheel reads as "you're at the helm / in command". Pass `size` (px) to scale.
  */
@@ -30,7 +30,7 @@ export function Logo({
         stroke="#3b414a"
       />
 
-      {/* grips — teal nubs beyond the rim, at each spoke */}
+      {/* grips — lime nubs beyond the rim, at each spoke */}
       <g stroke="#a3e635" strokeWidth="2.6" strokeLinecap="round">
         <path d="M29.5 20 33.4 20" />
         <path d="M24.8 28.2 26.8 31.6" />

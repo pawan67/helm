@@ -134,7 +134,7 @@ export function HistoryView({
 
   const repsChart = useChart({
     data: chartData,
-    series: [{ name: "reps", color: "teal.solid" }],
+    series: [{ name: "reps", color: "lime.solid" }],
   });
   const hangChart = useChart({
     data: chartData,
@@ -162,7 +162,7 @@ export function HistoryView({
           label="Total reps"
           value={totalReps.toLocaleString()}
           icon={Dumbbell}
-          accent="teal"
+          accent="lime"
           sub={`Across the last ${range} days`}
         />
         <StatCard
@@ -187,7 +187,7 @@ export function HistoryView({
         <Card.Header pb="0">
           <HStack justify="space-between">
             <HStack gap="2" color="fg.muted">
-              <Icon as={BarChart3} boxSize="3.5" color="teal.fg" />
+              <Icon as={BarChart3} boxSize="3.5" color="lime.fg" />
               <Eyebrow>Reps per day</Eyebrow>
             </HStack>
             {goalLine > 0 ? (
@@ -251,7 +251,7 @@ export function HistoryView({
                 {repsChart.data.map((d) => (
                   <Cell
                     key={d.date}
-                    fill={repsChart.color(d.hit ? "teal.solid" : "teal.muted")}
+                    fill={repsChart.color(d.hit ? "lime.solid" : "lime.muted")}
                   />
                 ))}
               </Bar>

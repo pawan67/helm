@@ -20,13 +20,13 @@ export type TrendDatum = {
 };
 
 /**
- * Compact reps-per-day bar chart (dashboard). Bars are solid teal when the
+ * Compact reps-per-day bar chart (dashboard). Bars are solid lime when the
  * daily goal was hit, dimmed otherwise; a dashed line marks the goal.
  */
 export function RepsTrend({ data, goal }: { data: TrendDatum[]; goal: number }) {
   const chart = useChart({
     data,
-    series: [{ name: "reps", color: "teal.solid" }],
+    series: [{ name: "reps", color: "lime.solid" }],
   });
 
   return (
@@ -70,7 +70,7 @@ export function RepsTrend({ data, goal }: { data: TrendDatum[]; goal: number }) 
           {chart.data.map((d, i) => (
             <Cell
               key={i}
-              fill={chart.color(d.hit ? "teal.solid" : "teal.muted")}
+              fill={chart.color(d.hit ? "lime.solid" : "lime.muted")}
             />
           ))}
         </Bar>

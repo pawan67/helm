@@ -65,7 +65,7 @@ export default async function DashboardPage() {
   return (
     <Stack gap="6">
       <SectionHeader eyebrow={dateLabel} title="Dashboard">
-        <Button asChild colorPalette="teal" size="lg">
+        <Button asChild colorPalette="lime" size="lg">
           <Link href="/live">
             <Radio size={16} />
             Go live
@@ -91,10 +91,10 @@ export default async function DashboardPage() {
                 <RingProgress
                   value={summary.todayReps}
                   max={summary.dailyGoalReps || 1}
-                  colorPalette="teal"
+                  colorPalette="lime"
                   size={140}
                 >
-                  <Metric fontSize="4xl" color="teal.fg">
+                  <Metric fontSize="4xl" color="lime.fg">
                     {summary.todayReps}
                   </Metric>
                   <Eyebrow mt="1">/ {summary.dailyGoalReps} reps</Eyebrow>
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
                 <Stack flex="1" w="full" gap="5" minW="0">
                   <Stack gap="1">
                     <Eyebrow>Today</Eyebrow>
-                    <Heading size="xl" color={goalHit ? "teal.fg" : "fg"}>
+                    <Heading size="xl" color={goalHit ? "lime.fg" : "fg"}>
                       {goalHit ? (
                         "Goal smashed"
                       ) : (
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
                     <Meter
                       value={summary.weeklyReps}
                       max={summary.weeklyGoalReps || 1}
-                      colorPalette="teal"
+                      colorPalette="lime"
                     />
                   </Stack>
                 </Stack>
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
             label="Lifetime reps"
             value={summary.lifetimeReps.toLocaleString()}
             icon={Dumbbell}
-            accent="teal"
+            accent="lime"
             sub={`${summary.lifetimeSessions} sessions`}
           />
         </GridItem>
@@ -175,7 +175,7 @@ export default async function DashboardPage() {
                   gap="1"
                   fontSize="xs"
                   color="fg.subtle"
-                  _hover={{ color: "teal.fg" }}
+                  _hover={{ color: "lime.fg" }}
                 >
                   <Link href="/history">
                     full history <ArrowRight size={13} />

@@ -19,13 +19,13 @@ export type Accent =
   | "online"
   | "danger"
   | "gray"
-  | "teal"
+  | "lime"
   | "cyan"
   | "orange"
   | "purple"
   | "red";
 
-/** Small, quiet caption, optionally with a leading teal tick. */
+/** Small, quiet caption, optionally with a leading lime tick. */
 export function Eyebrow({
   tick,
   children,
@@ -44,7 +44,7 @@ export function Eyebrow({
       {...props}
     >
       {tick ? (
-        <Box as="span" boxSize="1.5" rounded="full" bg="teal.solid" />
+        <Box as="span" boxSize="1.5" rounded="full" bg="lime.solid" />
       ) : null}
       {children}
     </Text>
@@ -206,7 +206,7 @@ export function StatCard({
 export function Meter({
   value,
   max,
-  colorPalette = "teal",
+  colorPalette = "lime",
 }: {
   value: number;
   max: number;
@@ -226,7 +226,7 @@ export function Meter({
 export function RingProgress({
   value,
   max,
-  colorPalette = "teal",
+  colorPalette = "lime",
   size = 132,
   thickness = 10,
   children,
@@ -284,7 +284,7 @@ export function RingProgress({
 }
 
 const TYPE_META = {
-  pullup_set: { label: "Pull-up set", palette: "teal" as const },
+  pullup_set: { label: "Pull-up set", palette: "lime" as const },
   dead_hang: { label: "Dead hang", palette: "cyan" as const },
 };
 

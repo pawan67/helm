@@ -32,8 +32,8 @@ export function DistanceGauge({
     state === "rep_up" || (hasReading && distanceMm! < repNearMm);
   const active = state === "hanging" || state === "rep_up";
 
-  const readoutColor = inRepZone ? "teal.fg" : hasReading ? "cyan.fg" : "fg.subtle";
-  const markerColor = inRepZone ? "teal.solid" : "cyan.solid";
+  const readoutColor = inRepZone ? "lime.fg" : hasReading ? "cyan.fg" : "fg.subtle";
+  const markerColor = inRepZone ? "lime.solid" : "cyan.solid";
 
   return (
     <Card.Root bg="bg.panel" h="full">
@@ -43,7 +43,7 @@ export function DistanceGauge({
             <Icon
               as={Radar}
               boxSize="3.5"
-              color={active ? "teal.fg" : "fg.subtle"}
+              color={active ? "lime.fg" : "fg.subtle"}
             />
             <Eyebrow>Sensor</Eyebrow>
           </HStack>
@@ -89,7 +89,7 @@ export function DistanceGauge({
             transform="translateY(-50%)"
             fontSize="10px"
             fontWeight="semibold"
-            color="teal.fg"
+            color="lime.fg"
             style={{ top: `${repZoneEnd}%` }}
           >
             Rep
@@ -113,7 +113,7 @@ export function DistanceGauge({
               insetX="0"
               top="0"
               bgGradient="to-b"
-              gradientFrom="teal.solid/25"
+              gradientFrom="lime.solid/25"
               gradientTo="transparent"
               style={{ height: `${repZoneEnd}%` }}
             />
@@ -148,7 +148,7 @@ export function DistanceGauge({
               zIndex="1"
               borderTopWidth="1px"
               borderStyle="dashed"
-              borderColor="teal.solid/70"
+              borderColor="lime.solid/70"
               style={{ top: `${repZoneEnd}%` }}
             />
 
@@ -168,7 +168,7 @@ export function DistanceGauge({
                   h="10"
                   bgGradient="to-b"
                   gradientFrom="transparent"
-                  gradientVia="teal.solid/25"
+                  gradientVia="lime.solid/25"
                   gradientTo="transparent"
                 />
               </Box>

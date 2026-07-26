@@ -58,7 +58,7 @@ function LoginForm() {
           <Card.Root bg="bg.panel">
             <Card.Header alignItems="center" textAlign="center" gap="3" pt="2">
               <Logo size={56} />
-              <Heading size="3xl" color="teal.fg">
+              <Heading size="3xl" color="lime.fg">
                 HELM
               </Heading>
               <Eyebrow>operator console</Eyebrow>
@@ -95,7 +95,7 @@ function LoginForm() {
             <Card.Footer>
               <Button
                 type="submit"
-                colorPalette="teal"
+                colorPalette="lime"
                 size="lg"
                 w="full"
                 loading={loading}

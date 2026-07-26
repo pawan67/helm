@@ -110,19 +110,19 @@ export function SettingsForm({ initial }: { initial: Settings }) {
               <Circle
                 size="12"
                 borderWidth="1px"
-                borderColor={live ? "teal.muted" : "border.subtle"}
+                borderColor={live ? "lime.muted" : "border.subtle"}
                 bg="bg.subtle"
               >
                 <Icon
                   as={Radar}
                   boxSize="6"
-                  color={live ? "teal.fg" : "fg.subtle"}
+                  color={live ? "lime.fg" : "fg.subtle"}
                 />
               </Circle>
               <Stack gap="1">
                 <Eyebrow>Live reading</Eyebrow>
                 <HStack align="baseline" gap="2">
-                  <Metric fontSize="4xl" color="teal.fg">
+                  <Metric fontSize="4xl" color="lime.fg">
                     {state.distanceMm != null ? state.distanceMm : "—"}
                   </Metric>
                   <Text fontSize="xs" color="fg.subtle">
@@ -252,7 +252,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
             gap="3"
           >
             <Info label="ID" value={initial.deviceId} />
-            <Info label="Status" value={live ? "online" : "offline"} tone={live ? "teal" : "red"} dot />
+            <Info label="Status" value={live ? "online" : "offline"} tone={live ? "lime" : "red"} dot />
             <Info label="Firmware" value={state.fwVersion ?? "—"} />
             <Info label="Signal" value={state.rssi != null ? `${state.rssi} dBm` : "—"} />
           </Grid>
@@ -277,7 +277,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
           <HStack gap="2" fontSize="xs" minW="0">
             {saved ? (
               <>
-                <Icon as={Check} boxSize="3.5" color="teal.fg" />
+                <Icon as={Check} boxSize="3.5" color="lime.fg" />
                 <Text color="fg.subtle" truncate>
                   All changes saved
                 </Text>
@@ -292,7 +292,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
             )}
           </HStack>
           <Button
-            colorPalette="teal"
+            colorPalette="lime"
             size="lg"
             onClick={save}
             loading={saving}
@@ -381,14 +381,14 @@ function SliderField({
       min={min}
       max={max}
       step={step}
-      colorPalette="teal"
+      colorPalette="lime"
       onValueChange={(e) => onChange(e.value[0])}
     >
       <HStack justify="space-between" mb="1">
         <Slider.Label fontSize="sm" fontWeight="medium">
           {label}
         </Slider.Label>
-        <Text fontSize="sm" color="teal.fg" fontVariantNumeric="tabular-nums">
+        <Text fontSize="sm" color="lime.fg" fontVariantNumeric="tabular-nums">
           {value}
           <Text as="span" ml="1" color="fg.subtle">
             {unit}
@@ -416,10 +416,10 @@ function Info({
 }: {
   label: string;
   value: string;
-  tone?: "teal" | "red";
+  tone?: "lime" | "red";
   dot?: boolean;
 }) {
-  const color = tone === "teal" ? "teal.fg" : tone === "red" ? "red.fg" : "fg";
+  const color = tone === "lime" ? "lime.fg" : tone === "red" ? "red.fg" : "fg";
   return (
     <Stack
       gap="1.5"
@@ -440,7 +440,7 @@ function Info({
         {dot ? (
           <Circle
             size="2"
-            bg={tone === "teal" ? "teal.solid" : "red.solid"}
+            bg={tone === "lime" ? "lime.solid" : "red.solid"}
             flexShrink="0"
           />
         ) : null}

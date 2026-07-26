@@ -4,11 +4,11 @@
   "title": "Design System: HELM",
   "extensions": {
     "colorMeta": {
-      "teal-solid": {
+      "lime-solid": {
         "role": "primary",
-        "displayName": "Signal Teal",
-        "canonical": "oklch(0.73 0.12 191)",
-        "tonalRamp": ["oklch(0.21 0.03 192)", "oklch(0.27 0.045 192)", "oklch(0.35 0.065 192)", "oklch(0.53 0.10 192)", "oklch(0.65 0.115 191)", "oklch(0.73 0.12 191)", "oklch(0.79 0.115 190)", "oklch(0.83 0.10 190)"]
+        "displayName": "Signal Lime",
+        "canonical": "oklch(0.87 0.21 128)",
+        "tonalRamp": ["oklch(0.24 0.04 130)", "oklch(0.30 0.06 130)", "oklch(0.40 0.09 130)", "oklch(0.62 0.15 129)", "oklch(0.78 0.19 128)", "oklch(0.87 0.21 128)", "oklch(0.89 0.20 128)", "oklch(0.91 0.17 128)"]
       },
       "cyan-solid": {
         "role": "secondary",
@@ -46,7 +46,7 @@
       "heading": { "displayName": "Heading", "purpose": "Page and section titles, in the body face at its heaviest weights." },
       "body": { "displayName": "Body", "purpose": "Interactive text and paragraphs; prose capped 65-75ch." },
       "metric": { "displayName": "Telemetry", "purpose": "Any changing number: timers, distances, temperatures, chart ticks. Mono, tabular." },
-      "eyebrow": { "displayName": "Eyebrow / Label", "purpose": "Quiet section markers, often with a small teal tick." }
+      "eyebrow": { "displayName": "Eyebrow / Label", "purpose": "Quiet section markers, often with a small lime tick." }
     },
     "shadows": [
       { "name": "machined-edge", "value": "inset 0 1px 0 rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.18)", "purpose": "Default panel/tile depth: a 1px top highlight over a whisper of drop shadow reads as a bevelled metal edge." },
@@ -70,9 +70,9 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one primary action; solid Signal Teal with dark ink.",
+      "description": "The one primary action; solid Signal Lime with dark ink.",
       "html": "<button class=\"ds-btn-primary\">Go live</button>",
-      "css": ".ds-btn-primary { background: oklch(0.73 0.12 191); color: oklch(0.18 0.03 192); font: 600 0.875rem/1 \"Plus Jakarta Sans\", system-ui, sans-serif; padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; transition: background .2s cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { background: oklch(0.79 0.115 190); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.73 0.12 191); outline-offset: 2px; }"
+      "css": ".ds-btn-primary { background: oklch(0.87 0.21 128); color: oklch(0.20 0.03 130); font: 600 0.875rem/1 \"Plus Jakarta Sans\", system-ui, sans-serif; padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; transition: background .2s cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { background: oklch(0.89 0.20 128); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.87 0.21 128); outline-offset: 2px; }"
     },
     {
       "name": "Destructive Button",
@@ -102,17 +102,17 @@
       "name": "Input",
       "kind": "input",
       "refersTo": "input",
-      "description": "Slate field with a teal focus ring.",
+      "description": "Slate field with a lime focus ring.",
       "html": "<input class=\"ds-input\" placeholder=\"Access key\" />",
-      "css": ".ds-input { background: oklch(0.225 0.007 260); color: oklch(0.96 0.004 260); border: 1px solid oklch(0.34 0.008 260); border-radius: 10px; padding: 0.5rem 0.75rem; font: 400 1rem \"Plus Jakarta Sans\", system-ui, sans-serif; } .ds-input::placeholder { color: oklch(0.64 0.007 260); } .ds-input:focus-visible { outline: none; border-color: oklch(0.73 0.12 191); box-shadow: 0 0 0 3px color-mix(in oklch, oklch(0.73 0.12 191) 35%, transparent); }"
+      "css": ".ds-input { background: oklch(0.225 0.007 260); color: oklch(0.96 0.004 260); border: 1px solid oklch(0.34 0.008 260); border-radius: 10px; padding: 0.5rem 0.75rem; font: 400 1rem \"Plus Jakarta Sans\", system-ui, sans-serif; } .ds-input::placeholder { color: oklch(0.64 0.007 260); } .ds-input:focus-visible { outline: none; border-color: oklch(0.87 0.21 128); box-shadow: 0 0 0 3px color-mix(in oklch, oklch(0.87 0.21 128) 35%, transparent); }"
     },
     {
       "name": "Active Nav Item",
       "kind": "nav",
       "refersTo": "nav-item-active",
-      "description": "The active navigation item: muted-slate fill, teal label, and a 3px teal position bar on the inner edge (a structural marker, not a decorative stripe).",
+      "description": "The active navigation item: muted-slate fill, lime label, and a 3px lime position bar on the inner edge (a structural marker, not a decorative stripe).",
       "html": "<a class=\"ds-nav-active\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/></svg>Dashboard</a>",
-      "css": ".ds-nav-active { position: relative; display: inline-flex; align-items: center; gap: 0.5rem; background: oklch(0.26 0.008 260); color: oklch(0.83 0.10 190); border-radius: 10px; padding: 0.5rem 0.75rem 0.5rem 0.875rem; font: 600 0.875rem \"Plus Jakarta Sans\", system-ui, sans-serif; text-decoration: none; } .ds-nav-active::before { content: \"\"; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 56%; background: oklch(0.73 0.12 191); border-radius: 999px; }"
+      "css": ".ds-nav-active { position: relative; display: inline-flex; align-items: center; gap: 0.5rem; background: oklch(0.26 0.008 260); color: oklch(0.91 0.17 128); border-radius: 10px; padding: 0.5rem 0.75rem 0.5rem 0.875rem; font: 600 0.875rem \"Plus Jakarta Sans\", system-ui, sans-serif; text-decoration: none; } .ds-nav-active::before { content: \"\"; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 56%; background: oklch(0.87 0.21 128); border-radius: 999px; }"
     },
     {
       "name": "Status Badge",
@@ -120,7 +120,7 @@
       "refersTo": "badge-pill",
       "description": "A pill with a state dot plus label, so status never rides on color alone.",
       "html": "<span class=\"ds-badge\">Session live on the bar</span>",
-      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 0.375rem; background: oklch(0.27 0.045 192); color: oklch(0.83 0.10 190); border: 1px solid oklch(0.35 0.065 192); border-radius: 999px; padding: 0.125rem 0.625rem; font: 500 0.75rem \"Plus Jakarta Sans\", system-ui, sans-serif; } .ds-badge::before { content: \"\"; width: 6px; height: 6px; border-radius: 999px; background: oklch(0.73 0.12 191); }"
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 0.375rem; background: oklch(0.30 0.06 130); color: oklch(0.91 0.17 128); border: 1px solid oklch(0.40 0.09 130); border-radius: 999px; padding: 0.125rem 0.625rem; font: 500 0.75rem \"Plus Jakarta Sans\", system-ui, sans-serif; } .ds-badge::before { content: \"\"; width: 6px; height: 6px; border-radius: 999px; background: oklch(0.87 0.21 128); }"
     },
     {
       "name": "Live Readout",
@@ -128,21 +128,21 @@
       "refersTo": "hero",
       "description": "The signature instrument reading: a bare stamped rep count that sits on the surface, not in a card.",
       "html": "<div class=\"ds-readout\">14</div>",
-      "css": ".ds-readout { font: 800 clamp(3rem, 12vw, 7rem)/0.9 \"Plus Jakarta Sans\", system-ui, sans-serif; letter-spacing: -0.03em; color: oklch(0.83 0.10 190); font-variant-numeric: tabular-nums; }"
+      "css": ".ds-readout { font: 800 clamp(3rem, 12vw, 7rem)/0.9 \"Plus Jakarta Sans\", system-ui, sans-serif; letter-spacing: -0.03em; color: oklch(0.91 0.17 128); font-variant-numeric: tabular-nums; }"
     }
   ],
   "narrative": {
     "northStar": "The Quiet Helm",
-    "overview": "HELM is a calm, premium instrument panel for the systems one operator runs under their own roof: their training on the bar, the climate of their rooms, the devices they command by infrared. The surface is soft layered slate under low light, and it stays visually silent until something matters, at which point a single calm teal signal lights the one thing worth reading. The system is dark-only by intent and telemetry-first: the dominant reading on any screen carries the mass, everything else recedes into muted slate, and warmth (amber) appears only when the operator has earned it. It rejects the generic SaaS dashboard, the chatty consumer smart-home app, the neon crypto/gamer look, and any cluttered screen where nothing dominates.",
+    "overview": "HELM is a calm, premium instrument panel for the systems one operator runs under their own roof: their training on the bar, the climate of their rooms, the devices they command by infrared. The surface is soft layered slate under low light, and it stays visually silent until something matters, at which point a single calm lime signal lights the one thing worth reading. The system is dark-only by intent and telemetry-first: the dominant reading on any screen carries the mass, everything else recedes into muted slate, and warmth (amber) appears only when the operator has earned it. It rejects the generic SaaS dashboard, the chatty consumer smart-home app, the neon crypto/gamer look, and any cluttered screen where nothing dominates.",
     "keyCharacteristics": [
-      "Dark-only, soft-slate surface with a single teal signal.",
+      "Dark-only, soft-slate surface with a single lime signal.",
       "One dominant, glanceable reading per screen; everything else muted.",
       "Telemetry in tabular mono; headings and hero numbers in a friendly geometric sans.",
       "Softly rounded corners (6-24px) and gentle, layered depth, never flat and never glassy.",
-      "Reserved color: teal for live/on, amber for reward only, green/red for device state."
+      "Reserved color: lime for live/on, amber for reward only, green/red for device state."
     ],
     "rules": [
-      { "name": "The One Signal Rule", "body": "Teal means live, interactive, or on, and nothing else. It is the only accent used for primary actions and the only color that says 'now'. Do not spend it on decoration.", "section": "colors" },
+      { "name": "The One Signal Rule", "body": "Lime means live, interactive, or on, and nothing else. It is the only accent used for primary actions and the only color that says 'now'. Do not spend it on decoration.", "section": "colors" },
       { "name": "The Earned-Amber Rule", "body": "Amber appears only as a reward or a heat reading: a streak, a PR, a hit goal, a temperature. It is never a button, never a nav state, never a default accent.", "section": "colors" },
       { "name": "The Tinted-Neutral Rule", "body": "Every neutral carries hue 260 at chroma <=0.008. Pure #000/#fff are forbidden; the slate must read as slate.", "section": "colors" },
       { "name": "The Telemetry-Is-Mono Rule", "body": "If a number changes on screen (a timer, a distance, a reading, a count), it is set in JetBrains Mono with tabular-nums so it never jitters. Chart-axis numbers are rounded to their real precision.", "section": "typography" },
@@ -152,7 +152,7 @@
     ],
     "dos": [
       "Do keep one dominant reading per screen; mute everything else to fg-muted / fg-subtle slate.",
-      "Do spend teal only on live/interactive/on states, and amber only on earned reward and heat.",
+      "Do spend lime only on live/interactive/on states, and amber only on earned reward and heat.",
       "Do set every changing number in JetBrains Mono with tabular-nums, and round chart-axis numbers to their real precision.",
       "Do build depth from a tonal slate step plus a 1px border plus the machined sheen, in that order.",
       "Do pair every status color with a dot, icon, or label (color is never the only signal).",
@@ -163,7 +163,7 @@
       "Don't build the generic SaaS dashboard: identical rounded card grids, the big-number-hero template, gradient accents, or the stock-component look.",
       "Don't drift into the consumer smart-home app: pastel bubbles, a chatty assistant, greeting cards, emoji, or confetti on a PR.",
       "Don't use neon-on-black, gradient text (background-clip: text), or glow for energy; contrast and weight carry it.",
-      "Don't use teal for anything that isn't 'live/on', or amber for anything that isn't a reward or a temperature.",
+      "Don't use lime for anything that isn't 'live/on', or amber for anything that isn't a reward or a temperature.",
       "Don't use a colored border-left/border-right greater than 1px as a decorative stripe on a card, callout, or list item.",
       "Don't nest cards, or wrap a bare instrument reading in a card just to contain it.",
       "Don't animate layout properties (top, left, width, height); move with transform and opacity only, ease-out, no bounce.",

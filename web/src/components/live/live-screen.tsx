@@ -27,8 +27,8 @@ type StateMeta = { label: string; palette: string; dot: string };
 
 const STATE_META: Record<string, StateMeta> = {
   idle: { label: "Ready", palette: "gray", dot: "fg.subtle" },
-  hanging: { label: "On the bar", palette: "teal", dot: "teal.solid" },
-  rep_up: { label: "Pulling", palette: "teal", dot: "teal.solid" },
+  hanging: { label: "On the bar", palette: "lime", dot: "lime.solid" },
+  rep_up: { label: "Pulling", palette: "lime", dot: "lime.solid" },
   offline: { label: "Device offline", palette: "danger", dot: "danger.solid" },
 };
 
@@ -84,7 +84,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
         animation={flash > 0 ? "ih-flash 0.5s ease-out" : undefined}
         style={{
           background:
-            "radial-gradient(60% 50% at 50% 40%, color-mix(in srgb, var(--chakra-colors-teal-solid) 20%, transparent), transparent 70%)",
+            "radial-gradient(60% 50% at 50% 40%, color-mix(in srgb, var(--chakra-colors-lime-solid) 20%, transparent), transparent 70%)",
         }}
       />
 
@@ -94,7 +94,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
           position="relative"
           bg="bg.panel"
           borderWidth="1px"
-          borderColor={active ? "teal.muted" : "border.subtle"}
+          borderColor={active ? "lime.muted" : "border.subtle"}
           rounded="lg"
           overflow="hidden"
           className="ih-machined"
@@ -105,7 +105,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
             <Box position="absolute" top="0" insetX="0" h="3px" className="ih-stripe" />
           ) : null}
 
-          {/* faint teal wash from the top while active */}
+          {/* faint lime wash from the top while active */}
           <Box
             position="absolute"
             inset="0"
@@ -114,7 +114,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
             transition="opacity 0.4s ease-out"
             style={{
               background:
-                "radial-gradient(95% 55% at 50% -10%, color-mix(in srgb, var(--chakra-colors-teal-solid) 9%, transparent), transparent 60%)",
+                "radial-gradient(95% 55% at 50% -10%, color-mix(in srgb, var(--chakra-colors-lime-solid) 9%, transparent), transparent 60%)",
             }}
           />
 
@@ -168,7 +168,7 @@ export function LiveScreen({ thresholds }: { thresholds: DetectionThresholds }) 
             <Flex direction="column" align="center" justify="center" flex="1" py="6">
               <Readout
                 key={repTick}
-                color="teal.fg"
+                color="lime.fg"
                 animation={repTick > 0 ? "ih-pop 0.28s cubic-bezier(0.16,1,0.3,1)" : undefined}
                 style={{ fontSize: "clamp(7rem, 30vw, 17rem)" }}
               >
@@ -284,7 +284,7 @@ function SessionSummary({
                   )}
 
                   <HStack align="baseline" gap="3">
-                    <Readout fontSize="6xl" color={isPull ? "teal.fg" : "fg"}>
+                    <Readout fontSize="6xl" color={isPull ? "lime.fg" : "fg"}>
                       {isPull ? shown.reps : formatHang(shown.maxHangMs)}
                     </Readout>
                     <Text
@@ -346,7 +346,7 @@ function SummaryStat({
       textAlign="center"
     >
       <Eyebrow fontSize="10px">{label}</Eyebrow>
-      <Metric mt="1.5" fontSize="lg" color={accent ? "teal.fg" : "fg"}>
+      <Metric mt="1.5" fontSize="lg" color={accent ? "lime.fg" : "fg"}>
         {value}
       </Metric>
     </Box>
