@@ -82,23 +82,16 @@ function Brand() {
         <Text
           fontFamily="heading"
           fontWeight="800"
-          textTransform="uppercase"
-          letterSpacing="0.06em"
-          lineHeight="0.9"
+          letterSpacing="-0.02em"
+          lineHeight="1"
           fontSize="22px"
         >
           Helm
         </Text>
-        <HStack gap="1.5" mt="0.5">
-          <Box w="8px" h="2px" bg="hazard.solid" />
-          <Text
-            fontFamily="mono"
-            fontSize="9px"
-            letterSpacing="0.28em"
-            textTransform="uppercase"
-            color="fg.subtle"
-          >
-            operator console
+        <HStack gap="1.5" mt="1">
+          <Box boxSize="1.5" rounded="full" bg="teal.solid" />
+          <Text fontSize="11px" fontWeight="medium" color="fg.subtle">
+            Operator console
           </Text>
         </HStack>
       </Box>
@@ -127,26 +120,17 @@ function DeviceStatus() {
             boxSize="4"
             color={online ? "online.fg" : "fg.subtle"}
           />
-          <Text
-            fontFamily="mono"
-            fontSize="10px"
-            letterSpacing="0.14em"
-            textTransform="uppercase"
-            color="fg.muted"
-          >
+          <Text fontSize="xs" fontWeight="medium" color="fg.muted">
             Device
           </Text>
         </HStack>
         <Badge
           size="sm"
-          rounded="sm"
-          fontFamily="mono"
-          textTransform="uppercase"
-          letterSpacing="0.1em"
+          rounded="full"
           colorPalette={online ? "online" : "gray"}
           variant={online ? "surface" : "subtle"}
         >
-          {online ? "online" : "offline"}
+          {online ? "Online" : "Offline"}
         </Badge>
       </HStack>
       <HStack
@@ -183,10 +167,9 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         {NAV_SECTIONS.map((section) => (
           <Stack key={section.title} gap="0.5">
             <Text
-              fontFamily="mono"
-              fontSize="9px"
-              letterSpacing="0.24em"
-              textTransform="uppercase"
+              fontSize="xs"
+              fontWeight="semibold"
+              letterSpacing="0.02em"
               color="fg.subtle"
               px="3"
               mb="1.5"
@@ -212,9 +195,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                     size="xs"
                     variant="surface"
                     colorPalette="gray"
-                    rounded="sm"
-                    fontFamily="mono"
-                    letterSpacing="0.1em"
+                    rounded="full"
                   >
                     soon
                   </Badge>
@@ -233,8 +214,8 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                       rounded="md"
                       fontWeight={active ? "600" : "500"}
                       bg={active ? "bg.muted" : undefined}
-                      color={active ? "hazard.fg" : "fg.muted"}
-                      _hover={{ bg: "bg.muted", color: active ? "hazard.fg" : "fg" }}
+                      color={active ? "teal.fg" : "fg.muted"}
+                      _hover={{ bg: "bg.muted", color: active ? "teal.fg" : "fg" }}
                     >
                       <Link href={item.href} onClick={onNavigate}>
                         {active ? (
@@ -245,7 +226,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                             transform="translateY(-50%)"
                             w="3px"
                             h="56%"
-                            bg="hazard.solid"
+                            bg="teal.solid"
                             rounded="full"
                           />
                         ) : null}
@@ -327,15 +308,13 @@ function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Box
           boxSize="2"
           rounded="full"
-          bg={active ? "hazard.solid" : connected ? "online.solid" : "danger.solid"}
+          bg={active ? "teal.solid" : connected ? "online.solid" : "danger.solid"}
           animation={active ? "ih-blink 1.1s ease-in-out infinite" : undefined}
         />
         <Text
-          fontFamily="mono"
-          fontSize="11px"
-          letterSpacing="0.12em"
-          textTransform="uppercase"
-          color={active ? "hazard.fg" : "fg.muted"}
+          fontSize="sm"
+          fontWeight="medium"
+          color={active ? "teal.fg" : "fg.muted"}
         >
           {active ? "Session live on the bar" : "Standing by"}
         </Text>
@@ -348,25 +327,19 @@ function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           colorPalette={connected ? "online" : "danger"}
           variant="surface"
           size="sm"
-          rounded="sm"
-          fontFamily="mono"
-          textTransform="uppercase"
-          letterSpacing="0.1em"
+          rounded="full"
         >
           <Box boxSize="1.5" rounded="full" bg={connected ? "online.solid" : "danger.solid"} />
-          {connected ? "stream" : "offline"}
+          {connected ? "Stream" : "Offline"}
         </Badge>
         <Badge
           colorPalette={state.deviceOnline ? "online" : "gray"}
           variant="subtle"
           size="sm"
-          rounded="sm"
-          fontFamily="mono"
-          textTransform="uppercase"
-          letterSpacing="0.1em"
+          rounded="full"
           hideBelow="sm"
         >
-          device {state.deviceOnline ? "on" : "off"}
+          Device {state.deviceOnline ? "on" : "off"}
         </Badge>
       </HStack>
     </Flex>

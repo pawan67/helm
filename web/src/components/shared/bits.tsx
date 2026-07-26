@@ -25,7 +25,7 @@ export type Accent =
   | "purple"
   | "red";
 
-/** Small uppercase tracked caption, optionally with a leading hazard tick. */
+/** Small, quiet caption, optionally with a leading teal tick. */
 export function Eyebrow({
   tick,
   children,
@@ -37,14 +37,15 @@ export function Eyebrow({
       display="inline-flex"
       alignItems="center"
       gap="2"
-      fontSize="10px"
+      fontSize="xs"
       fontWeight="semibold"
-      letterSpacing="0.2em"
-      textTransform="uppercase"
+      letterSpacing="0.01em"
       color="fg.subtle"
       {...props}
     >
-      {tick ? <Box as="span" w="3" h="2px" bg="hazard.solid" /> : null}
+      {tick ? (
+        <Box as="span" boxSize="1.5" rounded="full" bg="teal.solid" />
+      ) : null}
       {children}
     </Text>
   );
@@ -68,9 +69,9 @@ export function Metric(props: React.ComponentProps<typeof Text>) {
 }
 
 /**
- * Hero readout — heavy condensed display face, tabular. For the big stamped
- * numbers (live rep count, PR value). Display font is reserved for these and
- * for headings, never for controls or data cells.
+ * Hero readout — the friendly display face at its heaviest weight, tabular. For
+ * the big numbers (live rep count, PR value). Reserved for these and headings,
+ * never for controls or data cells.
  */
 export function Readout(props: React.ComponentProps<typeof Text>) {
   return (
@@ -80,14 +81,14 @@ export function Readout(props: React.ComponentProps<typeof Text>) {
       fontFamily="heading"
       fontWeight="800"
       fontVariantNumeric="tabular-nums"
-      letterSpacing="-0.01em"
-      lineHeight="0.82"
+      letterSpacing="-0.03em"
+      lineHeight="0.9"
       {...props}
     />
   );
 }
 
-/** Page header: eyebrow + condensed uppercase title, optional right-side actions. */
+/** Page header: eyebrow + friendly title, optional right-side actions. */
 export function SectionHeader({
   eyebrow,
   title,
@@ -113,10 +114,10 @@ export function SectionHeader({
         <Heading
           size="3xl"
           fontWeight="700"
-          textTransform="uppercase"
-          letterSpacing="0.01em"
-          lineHeight="0.95"
+          letterSpacing="-0.02em"
+          lineHeight="1.05"
           mt="1.5"
+          textWrap="balance"
         >
           {title}
         </Heading>
@@ -127,9 +128,9 @@ export function SectionHeader({
 }
 
 /**
- * Instrument tile — a steel panel with a stamped readout. Deliberately not the
- * icon-in-a-circle SaaS hero-metric card: label sits on a hairline, the number
- * is the mass, a thin hazard rule anchors the accent, the icon is a quiet mark.
+ * Metric tile — a soft panel with a big friendly readout. The label sits quiet
+ * at the top with a small accent tick, the number carries the mass, and the
+ * icon is an unobtrusive mark tinted to the accent.
  */
 export function StatCard({
   label,
@@ -155,23 +156,19 @@ export function StatCard({
       bg="bg.panel"
       borderWidth="1px"
       borderColor="border.subtle"
-      rounded="lg"
+      rounded="2xl"
       overflow="hidden"
-      px="4"
-      py="3.5"
+      px="5"
+      py="4"
       className="ih-machined"
     >
-      {/* accent spine along the bottom edge, not a decorative side stripe */}
-      <Box
-        position="absolute"
-        insetX="0"
-        bottom="0"
-        h="2px"
-        bg={hot ? "colorPalette.solid" : "border"}
-        opacity={hot ? 0.9 : 0.6}
-      />
       <HStack justify="space-between" align="center" mb="3">
-        <Eyebrow>{label}</Eyebrow>
+        <HStack gap="2">
+          {hot ? (
+            <Box boxSize="1.5" rounded="full" bg="colorPalette.solid" />
+          ) : null}
+          <Eyebrow>{label}</Eyebrow>
+        </HStack>
         {/* Render the icon directly (not via Chakra's client <Icon as=…/>): this
             file is a Server Component and a lucide icon is a forwardRef object,
             which can't cross the server→client prop boundary. */}
@@ -191,19 +188,13 @@ export function StatCard({
           {value}
         </Readout>
         {unit ? (
-          <Text
-            fontFamily="mono"
-            fontSize="xs"
-            color="fg.subtle"
-            textTransform="uppercase"
-            letterSpacing="0.1em"
-          >
+          <Text fontSize="sm" fontWeight="medium" color="fg.subtle">
             {unit}
           </Text>
         ) : null}
       </HStack>
       {sub ? (
-        <Text mt="2" fontSize="xs" color="fg.subtle" fontFamily="mono">
+        <Text mt="2" fontSize="xs" color="fg.subtle">
           {sub}
         </Text>
       ) : null}
@@ -215,7 +206,7 @@ export function StatCard({
 export function Meter({
   value,
   max,
-  colorPalette = "hazard",
+  colorPalette = "teal",
 }: {
   value: number;
   max: number;
@@ -223,9 +214,9 @@ export function Meter({
 }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
-    <Progress.Root value={pct} colorPalette={colorPalette} size="sm" rounded="sm">
-      <Progress.Track bg="bg.emphasized" rounded="sm">
-        <Progress.Range />
+    <Progress.Root value={pct} colorPalette={colorPalette} size="sm" rounded="full">
+      <Progress.Track bg="bg.emphasized" rounded="full">
+        <Progress.Range rounded="full" />
       </Progress.Track>
     </Progress.Root>
   );
@@ -235,7 +226,7 @@ export function Meter({
 export function RingProgress({
   value,
   max,
-  colorPalette = "hazard",
+  colorPalette = "teal",
   size = 132,
   thickness = 10,
   children,
@@ -278,7 +269,7 @@ export function RingProgress({
           fill="none"
           stroke="var(--chakra-colors-color-palette-solid)"
           strokeWidth={thickness}
-          strokeLinecap="butt"
+          strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - pct)}
         />
@@ -293,8 +284,8 @@ export function RingProgress({
 }
 
 const TYPE_META = {
-  pullup_set: { label: "Pull-up set", palette: "hazard" as const },
-  dead_hang: { label: "Dead hang", palette: "gray" as const },
+  pullup_set: { label: "Pull-up set", palette: "teal" as const },
+  dead_hang: { label: "Dead hang", palette: "cyan" as const },
 };
 
 /** Badge distinguishing a pull-up set from a dead hang. */
@@ -310,13 +301,10 @@ export function TypeBadge({ type }: { type: "pullup_set" | "dead_hang" }) {
       color="colorPalette.fg"
       borderWidth="1px"
       borderColor="colorPalette.muted"
-      rounded="sm"
-      px="2"
+      rounded="full"
+      px="2.5"
       py="0.5"
-      fontFamily="mono"
-      fontSize="10px"
-      textTransform="uppercase"
-      letterSpacing="0.12em"
+      fontSize="xs"
       fontWeight="medium"
     >
       <Box as="span" boxSize="1.5" rounded="full" bg="colorPalette.solid" />

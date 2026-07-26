@@ -41,9 +41,9 @@ export function LiveNudge() {
         <Box flex="1" minW="0">
           <HStack gap="2" color="colorPalette.fg" fontWeight="semibold">
             <Icon as={Radio} boxSize="4" />
-            <Text letterSpacing="wide">SESSION LIVE</Text>
+            <Text>Session live</Text>
           </HStack>
-          <Text fontFamily="mono" fontSize="xs" color="fg.muted">
+          <Text fontSize="xs" color="fg.muted">
             {state.reps} reps · on the bar now
           </Text>
         </Box>

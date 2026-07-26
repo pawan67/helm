@@ -1,8 +1,7 @@
 /**
- * HELM mark — a machined helm wheel: steel plate, hazard-amber rim and grips,
- * chalk spokes and hub. The wheel reads as "you're at the helm / command"; the
- * hazard rim is the same hot signal as the rest of the system. Hard-cornered
- * plate to match the industrial console. Pass `size` (px) to scale it.
+ * HELM mark — a helm wheel on a soft-rounded slate plate: teal rim and grips
+ * (the same calm signal as the rest of the system), chalk spokes and hub. The
+ * wheel reads as "you're at the helm / in command". Pass `size` (px) to scale.
  */
 export function Logo({
   size = 32,
@@ -20,19 +19,19 @@ export function Logo({
       fill="none"
       aria-hidden="true"
     >
-      {/* steel plate */}
+      {/* slate plate, soft-rounded */}
       <rect
         x="1.5"
         y="1.5"
         width="37"
         height="37"
-        rx="3"
-        fill="#191c20"
-        stroke="#454b53"
+        rx="9"
+        fill="#20242b"
+        stroke="#3b414a"
       />
 
-      {/* grips — hazard nubs beyond the rim, at each spoke */}
-      <g stroke="#f0882e" strokeWidth="2.6" strokeLinecap="square">
+      {/* grips — teal nubs beyond the rim, at each spoke */}
+      <g stroke="#20b2aa" strokeWidth="2.6" strokeLinecap="round">
         <path d="M29.5 20 33.4 20" />
         <path d="M24.8 28.2 26.8 31.6" />
         <path d="M15.2 28.2 13.2 31.6" />
@@ -41,11 +40,11 @@ export function Logo({
         <path d="M24.8 11.8 26.8 8.4" />
       </g>
 
-      {/* rim — the hot signal */}
-      <circle cx="20" cy="20" r="9.5" stroke="#f0882e" strokeWidth="2.2" />
+      {/* rim — the calm signal */}
+      <circle cx="20" cy="20" r="9.5" stroke="#20b2aa" strokeWidth="2.2" />
 
       {/* spokes — chalk */}
-      <g stroke="#e8eaee" strokeWidth="1.7" strokeLinecap="round">
+      <g stroke="#eef0f4" strokeWidth="1.7" strokeLinecap="round">
         <path d="M20 20 29.5 20" />
         <path d="M20 20 24.8 28.2" />
         <path d="M20 20 15.2 28.2" />
@@ -54,9 +53,9 @@ export function Logo({
         <path d="M20 20 24.8 11.8" />
       </g>
 
-      {/* hub — chalk with a machined steel center */}
-      <circle cx="20" cy="20" r="3" fill="#e8eaee" />
-      <circle cx="20" cy="20" r="1.1" fill="#191c20" />
+      {/* hub — chalk with a slate center */}
+      <circle cx="20" cy="20" r="3" fill="#eef0f4" />
+      <circle cx="20" cy="20" r="1.1" fill="#20242b" />
     </svg>
   );
 }

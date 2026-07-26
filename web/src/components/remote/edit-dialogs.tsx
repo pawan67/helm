@@ -88,11 +88,7 @@ function DialogShell({
         <Dialog.Positioner>
           <Dialog.Content bg="bg.panel" borderWidth="1px" borderColor="border.subtle">
             <Dialog.Header>
-              <Dialog.Title
-                fontFamily="heading"
-                textTransform="uppercase"
-                letterSpacing="0.04em"
-              >
+              <Dialog.Title>
                 {title}
               </Dialog.Title>
             </Dialog.Header>
@@ -202,7 +198,7 @@ export function DeviceDialog({
       footer={
         <HStack w="full">
           {editing ? (
-            <Button variant="outline" colorPalette="danger" onClick={remove} loading={busy}>
+            <Button variant="outline" colorPalette="red" onClick={remove} loading={busy}>
               <Trash2 size={16} /> Delete
             </Button>
           ) : null}
@@ -210,7 +206,7 @@ export function DeviceDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button colorPalette="hazard" onClick={save} loading={busy}>
+          <Button colorPalette="teal" onClick={save} loading={busy}>
             {editing ? "Save" : "Add"}
           </Button>
         </HStack>
@@ -355,7 +351,7 @@ export function ButtonDialog({
       footer={
         <HStack w="full">
           {editing ? (
-            <Button variant="outline" colorPalette="danger" onClick={remove} loading={busy}>
+            <Button variant="outline" colorPalette="red" onClick={remove} loading={busy}>
               <Trash2 size={16} /> Delete
             </Button>
           ) : null}
@@ -363,7 +359,7 @@ export function ButtonDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button colorPalette="hazard" onClick={save} loading={busy}>
+          <Button colorPalette="teal" onClick={save} loading={busy}>
             {editing ? "Save" : "Add"}
           </Button>
         </HStack>
@@ -397,7 +393,6 @@ export function ButtonDialog({
             inputMode="numeric"
             value={bits}
             onChange={(e) => setBits(Number(e.target.value))}
-            fontFamily="mono"
           />
         </Field.Root>
         <Field.Root>
@@ -407,7 +402,6 @@ export function ButtonDialog({
             inputMode="numeric"
             value={repeats}
             onChange={(e) => setRepeats(Number(e.target.value))}
-            fontFamily="mono"
           />
         </Field.Root>
       </HStack>
@@ -418,11 +412,9 @@ export function ButtonDialog({
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="00CF8976"
-          fontFamily="mono"
-          textTransform="uppercase"
         />
         <Field.HelperText>
-          <Text as="span" fontFamily="mono">
+          <Text as="span">
             0x
           </Text>{" "}
           optional. Grab codes from an IR database or your captured remote.

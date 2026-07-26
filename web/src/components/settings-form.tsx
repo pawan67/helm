@@ -125,7 +125,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
                   <Metric fontSize="4xl" color="teal.fg">
                     {state.distanceMm != null ? state.distanceMm : "—"}
                   </Metric>
-                  <Text fontFamily="mono" fontSize="xs" color="fg.subtle">
+                  <Text fontSize="xs" color="fg.subtle">
                     mm · {live ? state.state : "offline"}
                   </Text>
                 </HStack>
@@ -133,7 +133,6 @@ export function SettingsForm({ initial }: { initial: Settings }) {
             </HStack>
             <Text
               maxW="xs"
-              fontFamily="mono"
               fontSize="12px"
               lineHeight="tall"
               color="fg.subtle"
@@ -275,7 +274,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
           px="4"
           py="3"
         >
-          <HStack gap="2" fontFamily="mono" fontSize="xs" minW="0">
+          <HStack gap="2" fontSize="xs" minW="0">
             {saved ? (
               <>
                 <Icon as={Check} boxSize="3.5" color="teal.fg" />
@@ -297,10 +296,10 @@ export function SettingsForm({ initial }: { initial: Settings }) {
             size="lg"
             onClick={save}
             loading={saving}
-            loadingText="SAVING…"
+            loadingText="Saving…"
           >
             <Icon as={Save} boxSize="4" />
-            SAVE CHANGES
+            Save changes
           </Button>
         </Flex>
       </Box>
@@ -336,7 +335,7 @@ function GoalField({
       </Field.Label>
       <InputGroup
         endElement={
-          <Text fontFamily="mono" fontSize="xs" color="fg.subtle">
+          <Text fontSize="xs" color="fg.subtle">
             {unit}
           </Text>
         }
@@ -349,7 +348,6 @@ function GoalField({
           min={min}
           max={max}
           onChange={(e) => onChange(Number(e.target.value))}
-          fontFamily="mono"
           fontVariantNumeric="tabular-nums"
         />
       </InputGroup>
@@ -390,7 +388,7 @@ function SliderField({
         <Slider.Label fontSize="sm" fontWeight="medium">
           {label}
         </Slider.Label>
-        <Text fontFamily="mono" fontSize="sm" color="teal.fg" fontVariantNumeric="tabular-nums">
+        <Text fontSize="sm" color="teal.fg" fontVariantNumeric="tabular-nums">
           {value}
           <Text as="span" ml="1" color="fg.subtle">
             {unit}
@@ -435,7 +433,6 @@ function Info({
       <Eyebrow fontSize="9px">{label}</Eyebrow>
       <HStack
         gap="2"
-        fontFamily="mono"
         fontSize="sm"
         color={color}
         fontVariantNumeric="tabular-nums"

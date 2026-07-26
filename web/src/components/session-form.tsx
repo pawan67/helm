@@ -117,9 +117,7 @@ export function SessionForm({
         <Dialog.Positioner>
           <Dialog.Content bg="bg.panel">
             <Dialog.Header>
-              <Dialog.Title textTransform="uppercase" letterSpacing="0.02em">
-                Edit session
-              </Dialog.Title>
+              <Dialog.Title>Edit session</Dialog.Title>
             </Dialog.Header>
 
             <Dialog.Body>
@@ -144,7 +142,6 @@ export function SessionForm({
                     type="datetime-local"
                     value={when}
                     onChange={(e) => setWhen(e.target.value)}
-                    fontFamily="mono"
                   />
                 </Field.Root>
 
@@ -176,7 +173,7 @@ export function SessionForm({
                   />
                 )}
 
-                <Text fontSize="xs" color="fg.subtle" fontFamily="mono">
+                <Text fontSize="xs" color="fg.subtle">
                   {type === "pullup_set"
                     ? "Counts toward daily reps, streaks and the most-reps records."
                     : "Counts toward hang time and the longest-hang record."}
@@ -226,7 +223,7 @@ function NumField({
       <Field.Label>
         {label}
         {unit ? (
-          <Text as="span" ml="1" color="fg.subtle" fontFamily="mono" fontSize="xs">
+          <Text as="span" ml="1" color="fg.subtle" fontSize="xs">
             ({unit})
           </Text>
         ) : null}
@@ -237,7 +234,6 @@ function NumField({
         value={value}
         min={min}
         onChange={(e) => onChange(Math.max(min, Number(e.target.value) || 0))}
-        fontFamily="mono"
         fontVariantNumeric="tabular-nums"
       />
     </Field.Root>

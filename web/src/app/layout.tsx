@@ -1,25 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow, Barlow_Condensed, JetBrains_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Provider } from "@/components/ui/provider";
 
-// Industrial signage grotesk (body) + heavy condensed (display) + tabular mono
-// (telemetry). Exposed as CSS vars that the Chakra font tokens reference.
-const body = Barlow({
+// Friendly geometric sans for everything (body + headings, via `--font-display`
+// aliased to `--font-body` in globals.css) + a tabular mono kept for telemetry.
+// Exposed as CSS vars that the Chakra font tokens reference.
+const body = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-body",
-  display: "swap",
-});
-const display = Barlow_Condensed({
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-display",
   display: "swap",
 });
 const mono = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600"],
   variable: "--font-mono",
   display: "swap",
 });
@@ -32,7 +27,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1a1c20", // steel canvas
+  themeColor: "#1c1e24", // slate canvas
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -47,7 +42,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${body.variable} ${display.variable} ${mono.variable}`}
+      className={`${body.variable} ${mono.variable}`}
     >
       <body>
         <Provider defaultTheme="dark" enableSystem={false} forcedTheme="dark">

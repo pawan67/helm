@@ -68,7 +68,7 @@ export default async function DashboardPage() {
         <Button asChild colorPalette="teal" size="lg">
           <Link href="/live">
             <Radio size={16} />
-            GO LIVE
+            Go live
           </Link>
         </Button>
       </SectionHeader>
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
                     <Eyebrow>Today</Eyebrow>
                     <Heading size="xl" color={goalHit ? "teal.fg" : "fg"}>
                       {goalHit ? (
-                        "GOAL SMASHED"
+                        "Goal smashed"
                       ) : (
                         <>
                           {toGo}{" "}
@@ -118,21 +118,13 @@ export default async function DashboardPage() {
                   </Stack>
 
                   <Stack gap="2">
-                    <HStack
-                      justify="space-between"
-                      fontFamily="mono"
-                      fontSize="xs"
-                    >
+                    <HStack justify="space-between" fontSize="xs">
                       <Text color="fg.muted">Hang time</Text>
                       <Text color="cyan.fg" fontVariantNumeric="tabular-nums">
                         {formatHang(summary.todayHangMs)}
                       </Text>
                     </HStack>
-                    <HStack
-                      justify="space-between"
-                      fontFamily="mono"
-                      fontSize="xs"
-                    >
+                    <HStack justify="space-between" fontSize="xs">
                       <Text color="fg.muted">Weekly reps</Text>
                       <Text fontVariantNumeric="tabular-nums">
                         {summary.weeklyReps} / {summary.weeklyGoalReps}
@@ -181,7 +173,6 @@ export default async function DashboardPage() {
                 <HStack
                   asChild
                   gap="1"
-                  fontFamily="mono"
                   fontSize="xs"
                   color="fg.subtle"
                   _hover={{ color: "teal.fg" }}
