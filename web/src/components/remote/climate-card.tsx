@@ -77,8 +77,11 @@ function ToggleRow({
           return (
             <Button
               key={opt}
-              size="xs"
+              size="sm"
+              // 44px min touch target (Chakra sm is 32px): sweaty-hand,
+              // look-away taps from across the room need a real hit area.
               minW="12"
+              minH="11"
               variant={active ? "solid" : "outline"}
               colorPalette={active ? "teal" : "gray"}
               color={active ? "teal.contrast" : "fg.muted"}

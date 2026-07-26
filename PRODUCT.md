@@ -61,7 +61,8 @@ devices, their server, no one else's.
 - **Cluttered / data-dense.** Nothing competes with the one reading that matters on
   a given screen. Glanceable under load is a hard requirement, whether that load is
   a set of reps or a room full of devices.
-- Soft corporate-wellness pastels, rounded blobs and cutesy illustration are out.
+- **Cutesy wellness.** Soft and premium is the goal, but pastel bubbles, rounded
+  blobs, mascot illustration, emoji and confetti are out. Calm, not childish.
 
 ## Design Principles
 
@@ -73,20 +74,23 @@ devices, their server, no one else's.
 3. **Control shows its state.** A command reflects the new reality immediately and
    reports back. The panel shows what a device *is* now, never a hopeful spinner
    with no confirmation. When it cannot confirm, it says so plainly.
-4. **Built like equipment.** Utilitarian and structural. Hard edges, real borders,
-   honest surfaces. Decoration only where it aids reading (a hazard stripe means
+4. **Built like an instrument.** Utilitarian and structural, softened to premium:
+   gently rounded corners, real borders, honest surfaces, gentle depth over heavy
+   shadow. Decoration only where it aids reading (the teal live-stripe means
    "live", not "pretty").
-5. **Steel and chalk, not glass and gradient.** Physical materials over digital
-   sheen: matte steel surfaces, chalk-white marks, one hot hazard signal. No
-   glassmorphism.
+5. **Slate and signal, calm not clinical.** Soft layered slate surfaces, chalk-white
+   marks, and one calm teal signal that lights only what's live; warmth (amber) is
+   reserved for reward and heat. Energy comes from contrast and weight, never glow
+   or gradient. Glass only where it earns it (a sticky bar over scrolling content).
 6. **Instrument-grade trust.** Telemetry looks like telemetry: monospaced, tabular,
    precise. If a number is on screen, the operator should bet a set, or the room's
    comfort, on it.
 
 ## Accessibility & Inclusion
 
-- Target **WCAG 2.1 AA** contrast. The high-contrast chalk-on-steel palette clears
-  it comfortably; verify the hazard accent against its backgrounds.
+- Target **WCAG 2.1 AA** contrast. The chalk-on-slate palette clears it comfortably;
+  verify accent text and any solid-fill button (teal, amber, red) against its
+  background — label text on slate must reach 4.5:1.
 - **Never signal by color alone.** Online/offline, live/idle, on/off, PR/normal each
   carry a shape, label or icon in addition to hue (color-blind safe).
 - **Respect `prefers-reduced-motion`.** Count-ups, sweeps and state changes degrade

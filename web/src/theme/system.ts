@@ -172,15 +172,19 @@ const config = defineConfig({
         },
 
         // Danger — red (hue 28). Fault / offline / destructive.
+        // 500/600/700 darkened together (ramp stays monotonic) so a solid
+        // destructive button clears WCAG AA with its near-white ink: white on
+        // danger.500 is now 4.64:1 (was 3.20 at the old L0.65). The offline dot
+        // reads as a slightly deeper, more serious red.
         danger: {
           50: { value: "oklch(0.96 0.02 30)" },
           100: { value: "oklch(0.90 0.05 30)" },
           200: { value: "oklch(0.84 0.09 29)" },
           300: { value: "oklch(0.78 0.13 29)" },
           400: { value: "oklch(0.72 0.16 28)" },
-          500: { value: "oklch(0.65 0.175 28)" },
-          600: { value: "oklch(0.58 0.165 27)" },
-          700: { value: "oklch(0.47 0.135 26)" },
+          500: { value: "oklch(0.56 0.175 28)" },
+          600: { value: "oklch(0.48 0.16 27)" },
+          700: { value: "oklch(0.41 0.135 26)" },
           800: { value: "oklch(0.33 0.09 28)" },
           900: { value: "oklch(0.25 0.06 28)" },
           950: { value: "oklch(0.20 0.04 28)" },
@@ -210,7 +214,9 @@ const config = defineConfig({
         fg: {
           DEFAULT: flat("oklch(0.96 0.004 260)"), // soft white
           muted: flat("oklch(0.74 0.006 260)"),
-          subtle: flat("oklch(0.56 0.007 260)"),
+          // L lifted 0.56→0.64 so small labels clear WCAG AA (4.5:1) on every
+          // surface: 5.3 on panel, 5.6 on canvas, 5.1 on bg.subtle.
+          subtle: flat("oklch(0.64 0.007 260)"),
           inverted: flat("oklch(0.175 0.006 260)"),
         },
         border: {

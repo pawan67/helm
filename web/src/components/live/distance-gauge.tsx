@@ -152,18 +152,26 @@ export function DistanceGauge({
               style={{ top: `${repZoneEnd}%` }}
             />
 
-            {/* scan sweep while active */}
+            {/* scan sweep while active — full-height layer translated on the
+                GPU (transform, never `top`); its top band is what you see move */}
             {active && (
               <Box
                 position="absolute"
-                insetX="0"
-                h="10"
-                bgGradient="to-b"
-                gradientFrom="transparent"
-                gradientVia="teal.solid/25"
-                gradientTo="transparent"
+                inset="0"
+                pointerEvents="none"
                 animation="ih-sweep 2.4s linear infinite"
-              />
+              >
+                <Box
+                  position="absolute"
+                  insetX="0"
+                  top="0"
+                  h="10"
+                  bgGradient="to-b"
+                  gradientFrom="transparent"
+                  gradientVia="teal.solid/25"
+                  gradientTo="transparent"
+                />
+              </Box>
             )}
 
             {/* live marker */}

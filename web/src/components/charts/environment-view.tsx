@@ -49,6 +49,13 @@ function fmtLabel(iso: string, unit: EnvBucketUnit): string {
 const fmtTemp = (n: number | null) => (n == null ? "—" : n.toFixed(1));
 const fmtHum = (n: number | null) => (n == null ? "—" : Math.round(n).toString());
 
+// Round Y-axis ticks so Recharts' interpolated domain values (e.g.
+// 32.349999999999994) render clean; whole numbers stay whole.
+const tidyTick = (n: number) => {
+  const r = Math.round(n * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+};
+
 export function EnvironmentView({ initial }: { initial: EnvSeries }) {
   const { state, connected } = useLive();
   const [range, setRange] = useState(7);
@@ -206,7 +213,14 @@ export function EnvironmentView({ initial }: { initial: EnvSeries }) {
                       tickLine={false}
                       axisLine={false}
                       width={34}
-                      domain={["dataMin - 1", "dataMax + 1"]}
+                      // Integer bounds keep the tick spacing whole; the
+                      // formatter guards against any interpolated float.
+                      domain={[
+                        (min: number) => Math.floor(min - 1),
+                        (max: number) => Math.ceil(max + 1),
+                      ]}
+                      allowDecimals={false}
+                      tickFormatter={tidyTick}
                       tick={{ fontSize: 10, fill: tempChart.color("fg.muted") }}
                     />
                     <Tooltip
@@ -272,6 +286,8 @@ export function EnvironmentView({ initial }: { initial: EnvSeries }) {
                       axisLine={false}
                       width={34}
                       domain={[0, 100]}
+                      allowDecimals={false}
+                      tickFormatter={tidyTick}
                       tick={{ fontSize: 10, fill: humChart.color("fg.muted") }}
                     />
                     <Tooltip

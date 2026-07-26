@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-26T00:00:00Z",
+  "title": "Design System: HELM",
+  "extensions": {
+    "colorMeta": {
+      "teal-solid": {
+        "role": "primary",
+        "displayName": "Signal Teal",
+        "canonical": "oklch(0.73 0.12 191)",
+        "tonalRamp": ["oklch(0.21 0.03 192)", "oklch(0.27 0.045 192)", "oklch(0.35 0.065 192)", "oklch(0.53 0.10 192)", "oklch(0.65 0.115 191)", "oklch(0.73 0.12 191)", "oklch(0.79 0.115 190)", "oklch(0.83 0.10 190)"]
+      },
+      "cyan-solid": {
+        "role": "secondary",
+        "displayName": "Endurance Cyan",
+        "canonical": "oklch(0.71 0.12 246)",
+        "tonalRamp": ["oklch(0.21 0.035 246)", "oklch(0.27 0.05 246)", "oklch(0.34 0.07 246)", "oklch(0.51 0.10 246)", "oklch(0.63 0.12 246)", "oklch(0.71 0.12 246)", "oklch(0.77 0.11 245)", "oklch(0.82 0.085 245)"]
+      },
+      "amber-solid": {
+        "role": "tertiary",
+        "displayName": "Reward Amber",
+        "canonical": "oklch(0.77 0.135 72)",
+        "tonalRamp": ["oklch(0.22 0.032 72)", "oklch(0.29 0.05 72)", "oklch(0.38 0.075 70)", "oklch(0.57 0.11 68)", "oklch(0.71 0.13 70)", "oklch(0.77 0.135 72)", "oklch(0.81 0.13 74)", "oklch(0.85 0.115 76)"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "oklch(0.175 0.006 260)",
+        "tonalRamp": ["oklch(0.175 0.006 260)", "oklch(0.205 0.007 260)", "oklch(0.26 0.008 260)", "oklch(0.34 0.008 260)", "oklch(0.46 0.009 260)", "oklch(0.64 0.007 260)", "oklch(0.78 0.007 260)", "oklch(0.96 0.004 260)"]
+      },
+      "online-solid": {
+        "role": "signal",
+        "displayName": "Ready Green",
+        "canonical": "oklch(0.73 0.125 150)",
+        "tonalRamp": ["oklch(0.19 0.022 150)", "oklch(0.24 0.035 150)", "oklch(0.31 0.055 150)", "oklch(0.51 0.095 150)", "oklch(0.65 0.115 150)", "oklch(0.73 0.125 150)", "oklch(0.79 0.125 151)", "oklch(0.83 0.115 152)"]
+      },
+      "danger-solid": {
+        "role": "signal",
+        "displayName": "Fault Red",
+        "canonical": "oklch(0.56 0.175 28)",
+        "tonalRamp": ["oklch(0.20 0.04 28)", "oklch(0.25 0.06 28)", "oklch(0.33 0.09 28)", "oklch(0.41 0.135 26)", "oklch(0.48 0.16 27)", "oklch(0.56 0.175 28)", "oklch(0.72 0.16 28)", "oklch(0.78 0.13 29)"]
+      }
+    },
+    "typographyMeta": {
+      "hero": { "displayName": "Hero Readout", "purpose": "The live rep counter, read across a room. The one place fluid scale is earned." },
+      "heading": { "displayName": "Heading", "purpose": "Page and section titles, in the body face at its heaviest weights." },
+      "body": { "displayName": "Body", "purpose": "Interactive text and paragraphs; prose capped 65-75ch." },
+      "metric": { "displayName": "Telemetry", "purpose": "Any changing number: timers, distances, temperatures, chart ticks. Mono, tabular." },
+      "eyebrow": { "displayName": "Eyebrow / Label", "purpose": "Quiet section markers, often with a small teal tick." }
+    },
+    "shadows": [
+      { "name": "machined-edge", "value": "inset 0 1px 0 rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.18)", "purpose": "Default panel/tile depth: a 1px top highlight over a whisper of drop shadow reads as a bevelled metal edge." },
+      { "name": "overlay", "value": "0 10px 30px rgba(0,0,0,0.4)", "purpose": "True floating layers only: the mobile drawer, dialogs, the sticky save bar." }
+    ],
+    "motion": [
+      { "name": "duration-fast", "value": "120ms", "purpose": "Micro state changes (hover, tick)." },
+      { "name": "duration-base", "value": "200ms", "purpose": "Default transition." },
+      { "name": "duration-slow", "value": "320ms", "purpose": "Larger reveals." },
+      { "name": "ease-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Primary ease-out for pops and reveals. No bounce." },
+      { "name": "ease-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Softer ease-out for hovers and transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "480px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action; solid Signal Teal with dark ink.",
+      "html": "<button class=\"ds-btn-primary\">Go live</button>",
+      "css": ".ds-btn-primary { background: oklch(0.73 0.12 191); color: oklch(0.18 0.03 192); font: 600 0.875rem/1 \"Plus Jakarta Sans\", system-ui, sans-serif; padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; transition: background .2s cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { background: oklch(0.79 0.115 190); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.73 0.12 191); outline-offset: 2px; }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Primary confirm for a destructive action; deep red keeps the near-white label at WCAG AA (4.64:1).",
+      "html": "<button class=\"ds-btn-destructive\">Delete</button>",
+      "css": ".ds-btn-destructive { background: oklch(0.56 0.175 28); color: oklch(0.97 0.01 28); font: 600 0.875rem/1 \"Plus Jakarta Sans\", system-ui, sans-serif; padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; transition: background .2s cubic-bezier(0.25,1,0.5,1); } .ds-btn-destructive:hover { background: oklch(0.48 0.16 27); } .ds-btn-destructive:focus-visible { outline: 2px solid oklch(0.56 0.175 28); outline-offset: 2px; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The default raised surface: panel slate, 1px border, machined sheen. No nested cards.",
+      "html": "<div class=\"ds-card\">Panel</div>",
+      "css": ".ds-card { background: oklch(0.205 0.007 260); color: oklch(0.96 0.004 260); border: 1px solid oklch(0.285 0.008 260); border-radius: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.18); padding: 1.25rem; font: 400 1rem \"Plus Jakarta Sans\", system-ui, sans-serif; }"
+    },
+    {
+      "name": "Stat Tile",
+      "kind": "card",
+      "refersTo": "stat-tile",
+      "description": "A metric tile with a big readout; softer 24px corner than a plain card.",
+      "html": "<div class=\"ds-stat\"><span class=\"ds-stat-label\">Lifetime reps</span><span class=\"ds-stat-value\">12,480</span></div>",
+      "css": ".ds-stat { display: flex; flex-direction: column; gap: 0.75rem; background: oklch(0.205 0.007 260); border: 1px solid oklch(0.285 0.008 260); border-radius: 24px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.18); padding: 1rem 1.25rem; } .ds-stat-label { font: 600 0.75rem \"Plus Jakarta Sans\", system-ui, sans-serif; letter-spacing: 0.01em; color: oklch(0.64 0.007 260); } .ds-stat-value { font: 800 3rem/0.9 \"Plus Jakarta Sans\", system-ui, sans-serif; letter-spacing: -0.03em; color: oklch(0.96 0.004 260); font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Slate field with a teal focus ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Access key\" />",
+      "css": ".ds-input { background: oklch(0.225 0.007 260); color: oklch(0.96 0.004 260); border: 1px solid oklch(0.34 0.008 260); border-radius: 10px; padding: 0.5rem 0.75rem; font: 400 1rem \"Plus Jakarta Sans\", system-ui, sans-serif; } .ds-input::placeholder { color: oklch(0.64 0.007 260); } .ds-input:focus-visible { outline: none; border-color: oklch(0.73 0.12 191); box-shadow: 0 0 0 3px color-mix(in oklch, oklch(0.73 0.12 191) 35%, transparent); }"
+    },
+    {
+      "name": "Active Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "The active navigation item: muted-slate fill, teal label, and a 3px teal position bar on the inner edge (a structural marker, not a decorative stripe).",
+      "html": "<a class=\"ds-nav-active\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/></svg>Dashboard</a>",
+      "css": ".ds-nav-active { position: relative; display: inline-flex; align-items: center; gap: 0.5rem; background: oklch(0.26 0.008 260); color: oklch(0.83 0.10 190); border-radius: 10px; padding: 0.5rem 0.75rem 0.5rem 0.875rem; font: 600 0.875rem \"Plus Jakarta Sans\", system-ui, sans-serif; text-decoration: none; } .ds-nav-active::before { content: \"\"; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 56%; background: oklch(0.73 0.12 191); border-radius: 999px; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-pill",
+      "description": "A pill with a state dot plus label, so status never rides on color alone.",
+      "html": "<span class=\"ds-badge\">Session live on the bar</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 0.375rem; background: oklch(0.27 0.045 192); color: oklch(0.83 0.10 190); border: 1px solid oklch(0.35 0.065 192); border-radius: 999px; padding: 0.125rem 0.625rem; font: 500 0.75rem \"Plus Jakarta Sans\", system-ui, sans-serif; } .ds-badge::before { content: \"\"; width: 6px; height: 6px; border-radius: 999px; background: oklch(0.73 0.12 191); }"
+    },
+    {
+      "name": "Live Readout",
+      "kind": "custom",
+      "refersTo": "hero",
+      "description": "The signature instrument reading: a bare stamped rep count that sits on the surface, not in a card.",
+      "html": "<div class=\"ds-readout\">14</div>",
+      "css": ".ds-readout { font: 800 clamp(3rem, 12vw, 7rem)/0.9 \"Plus Jakarta Sans\", system-ui, sans-serif; letter-spacing: -0.03em; color: oklch(0.83 0.10 190); font-variant-numeric: tabular-nums; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Helm",
+    "overview": "HELM is a calm, premium instrument panel for the systems one operator runs under their own roof: their training on the bar, the climate of their rooms, the devices they command by infrared. The surface is soft layered slate under low light, and it stays visually silent until something matters, at which point a single calm teal signal lights the one thing worth reading. The system is dark-only by intent and telemetry-first: the dominant reading on any screen carries the mass, everything else recedes into muted slate, and warmth (amber) appears only when the operator has earned it. It rejects the generic SaaS dashboard, the chatty consumer smart-home app, the neon crypto/gamer look, and any cluttered screen where nothing dominates.",
+    "keyCharacteristics": [
+      "Dark-only, soft-slate surface with a single teal signal.",
+      "One dominant, glanceable reading per screen; everything else muted.",
+      "Telemetry in tabular mono; headings and hero numbers in a friendly geometric sans.",
+      "Softly rounded corners (6-24px) and gentle, layered depth, never flat and never glassy.",
+      "Reserved color: teal for live/on, amber for reward only, green/red for device state."
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "Teal means live, interactive, or on, and nothing else. It is the only accent used for primary actions and the only color that says 'now'. Do not spend it on decoration.", "section": "colors" },
+      { "name": "The Earned-Amber Rule", "body": "Amber appears only as a reward or a heat reading: a streak, a PR, a hit goal, a temperature. It is never a button, never a nav state, never a default accent.", "section": "colors" },
+      { "name": "The Tinted-Neutral Rule", "body": "Every neutral carries hue 260 at chroma <=0.008. Pure #000/#fff are forbidden; the slate must read as slate.", "section": "colors" },
+      { "name": "The Telemetry-Is-Mono Rule", "body": "If a number changes on screen (a timer, a distance, a reading, a count), it is set in JetBrains Mono with tabular-nums so it never jitters. Chart-axis numbers are rounded to their real precision.", "section": "typography" },
+      { "name": "The Weight-Not-Face Rule", "body": "Hierarchy is built from weight (400 to 800) and size, on one family. Do not reach for a second display face to create emphasis.", "section": "typography" },
+      { "name": "The Border-Before-Shadow Rule", "body": "Separation is a 1px border-subtle and a tonal step first. Shadow is added only for genuine floating layers (drawer, dialog, sticky bar).", "section": "elevation" },
+      { "name": "The Rare-Glass Rule", "body": "backdrop-filter: blur() is allowed on exactly two surfaces, the sticky top bar and the sticky settings save bar. It is never a decorative glass card.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep one dominant reading per screen; mute everything else to fg-muted / fg-subtle slate.",
+      "Do spend teal only on live/interactive/on states, and amber only on earned reward and heat.",
+      "Do set every changing number in JetBrains Mono with tabular-nums, and round chart-axis numbers to their real precision.",
+      "Do build depth from a tonal slate step plus a 1px border plus the machined sheen, in that order.",
+      "Do pair every status color with a dot, icon, or label (color is never the only signal).",
+      "Do give look-away controls a >=44px touch target and honor prefers-reduced-motion (all motion degrades to instant).",
+      "Do keep body text at >= fg-subtle lightness so labels clear WCAG AA (4.5:1) on slate."
+    ],
+    "donts": [
+      "Don't build the generic SaaS dashboard: identical rounded card grids, the big-number-hero template, gradient accents, or the stock-component look.",
+      "Don't drift into the consumer smart-home app: pastel bubbles, a chatty assistant, greeting cards, emoji, or confetti on a PR.",
+      "Don't use neon-on-black, gradient text (background-clip: text), or glow for energy; contrast and weight carry it.",
+      "Don't use teal for anything that isn't 'live/on', or amber for anything that isn't a reward or a temperature.",
+      "Don't use a colored border-left/border-right greater than 1px as a decorative stripe on a card, callout, or list item.",
+      "Don't nest cards, or wrap a bare instrument reading in a card just to contain it.",
+      "Don't animate layout properties (top, left, width, height); move with transform and opacity only, ease-out, no bounce.",
+      "Don't render a raw interpolated axis float, use backdrop-filter glass anywhere but the two sticky bars, or use pure #000/#fff."
+    ]
+  }
+}

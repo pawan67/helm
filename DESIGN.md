@@ -1,123 +1,244 @@
-# Design
+---
+name: HELM
+description: A calm, premium self-hosted console for the home & body systems you run.
+colors:
+  # Slate neutrals (hue 260, near-zero chroma) — the surface layering.
+  canvas: "oklch(0.175 0.006 260)"
+  panel: "oklch(0.205 0.007 260)"
+  surface-subtle: "oklch(0.225 0.007 260)"
+  surface-muted: "oklch(0.26 0.008 260)"
+  surface-emphasized: "oklch(0.30 0.008 260)"
+  border: "oklch(0.34 0.008 260)"
+  border-subtle: "oklch(0.285 0.008 260)"
+  border-emphasized: "oklch(0.42 0.009 260)"
+  fg: "oklch(0.96 0.004 260)"
+  fg-muted: "oklch(0.74 0.006 260)"
+  fg-subtle: "oklch(0.64 0.007 260)"
+  # Teal — the one primary signal (hue 191): live / interactive / device-on.
+  teal-solid: "oklch(0.73 0.12 191)"
+  teal-fg: "oklch(0.83 0.10 190)"
+  teal-ink: "oklch(0.18 0.03 192)"
+  # Cyan — endurance & humidity (hue 246): hang time, moisture.
+  cyan-solid: "oklch(0.71 0.12 246)"
+  cyan-fg: "oklch(0.82 0.085 245)"
+  # Amber — reward & heat ONLY (hue 72): streaks, PRs, goals, temperature.
+  amber-solid: "oklch(0.77 0.135 72)"
+  amber-fg: "oklch(0.85 0.115 76)"
+  amber-ink: "oklch(0.20 0.04 70)"
+  # Green — device ready / connected (hue 150).
+  online-solid: "oklch(0.73 0.125 150)"
+  online-fg: "oklch(0.83 0.115 152)"
+  # Red — fault / offline / destructive (hue 28).
+  danger-solid: "oklch(0.56 0.175 28)"
+  danger-fg: "oklch(0.78 0.13 29)"
+  danger-ink: "oklch(0.97 0.01 28)"
+typography:
+  hero:
+    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontSize: "clamp(7rem, 30vw, 17rem)"
+    fontWeight: 800
+    lineHeight: 0.9
+    letterSpacing: "-0.03em"
+    fontFeature: "tabular-nums"
+  heading:
+    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontSize: "clamp(1.5rem, 4vw, 1.875rem)"
+    fontWeight: 700
+    lineHeight: 1.05
+    letterSpacing: "-0.02em"
+  body:
+    fontFamily: "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  metric:
+    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    fontSize: "1rem"
+    fontWeight: 500
+    lineHeight: 1
+    fontFeature: "tabular-nums"
+  eyebrow:
+    fontFamily: "Plus Jakarta Sans, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 600
+    letterSpacing: "0.01em"
+rounded:
+  xs: "6px"
+  sm: "8px"
+  md: "10px"
+  lg: "14px"
+  xl: "18px"
+  "2xl": "24px"
+  pill: "999px"
+components:
+  button-primary:
+    backgroundColor: "{colors.teal-solid}"
+    textColor: "{colors.teal-ink}"
+    rounded: "{rounded.sm}"
+  button-secondary:
+    backgroundColor: "{colors.surface-subtle}"
+    textColor: "{colors.fg}"
+    rounded: "{rounded.sm}"
+  button-destructive:
+    backgroundColor: "{colors.danger-solid}"
+    textColor: "{colors.danger-ink}"
+    rounded: "{rounded.sm}"
+  card:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.fg}"
+    rounded: "{rounded.lg}"
+  stat-tile:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.fg}"
+    rounded: "{rounded.2xl}"
+  input:
+    backgroundColor: "{colors.surface-subtle}"
+    textColor: "{colors.fg}"
+    rounded: "{rounded.md}"
+  nav-item-active:
+    backgroundColor: "{colors.surface-muted}"
+    textColor: "{colors.teal-fg}"
+    rounded: "{rounded.md}"
+  badge-pill:
+    backgroundColor: "{colors.surface-subtle}"
+    textColor: "{colors.fg-muted}"
+    rounded: "{rounded.pill}"
+---
 
-Visual system for HELM. Register: **product**. Aesthetic: **industrial command console**
-— steel and chalk, one hot hazard signal, hard edges, telemetry that looks like telemetry.
-A machined panel for the systems the operator runs (their training, their rooms, their
-devices), not a gym app and not a smart-home app. Read [PRODUCT.md](./PRODUCT.md) for the
-strategy this serves.
+# Design System: HELM
 
-## Visual Theme
+## 1. Overview
 
-Matte machined steel under harsh light. Near-black cool-grey surfaces, chalk-white marks,
-structural 1px borders instead of soft shadows, and a single safety-orange "hazard" accent
-that only ever means *live / active / now*: a running session, a command firing, a device
-awake. Fixed dark theme (no light mode: this is a wall-mounted console glanced at in varied
-light, and the equipment metaphor is dark by nature). Texture is a faint film grain, never
-gloss or glass. Color strategy: **committed** — steel neutrals carry the surface, hazard
-orange is the one saturated voice.
+**Creative North Star: "The Quiet Helm"**
 
-## Color Palette
+HELM is a calm, premium instrument panel for the systems one operator runs under their own roof: their training on the bar, the climate of their rooms, the devices they command by infrared. The surface is soft layered slate under low light, and it stays visually silent until something matters, at which point a single calm teal signal lights the one thing worth reading. The feeling is a well-made control panel at dusk, not a cloud app: sovereign, quiet, and legible across a room.
 
-OKLCH. Neutrals tinted cool (hue 250) so steel reads as steel; the accent brings the warmth.
-Never `#000`/`#fff`.
+The system is dark-only by intent (a console glanced at on a wall or a propped-up phone in varied light) and telemetry-first. The dominant reading on any screen carries the mass; everything else recedes into muted slate. Corners are softly rounded and depth is gentle, so the panel reads as premium hardware rather than a flat spec sheet, but it never tips into playful: no pastel bubbles, no chatty assistant, no confetti. Warmth is reserved. The one warm color, amber, appears only when the operator has earned it.
 
-### Steel (neutral surfaces + text)
+This system explicitly rejects the generic SaaS dashboard (identical rounded card grids, the big-number-hero template, gradient accents, the stock-component look), the consumer smart-home app (pastel round bubbles, "Good morning!" greeting cards, cloud dependency), the neon crypto / gamer look (glow on pure black, gradient text), and any cluttered, data-dense screen where nothing dominates.
 
-| Token | OKLCH | Role |
-|---|---|---|
-| `bg` (canvas) | `oklch(0.15 0.006 250)` | app background |
-| `bg.panel` | `oklch(0.185 0.007 250)` | panels, sidebar, top bar |
-| `bg.subtle` | `oklch(0.215 0.008 250)` | raised blocks, inputs |
-| `bg.muted` | `oklch(0.25 0.009 250)` | hover surface |
-| `border.subtle` | `oklch(0.28 0.008 250)` | hairline dividers |
-| `border` | `oklch(0.36 0.010 250)` | default borders |
-| `border.emphasized` | `oklch(0.44 0.011 250)` | focused / machined edge |
-| `fg` (chalk) | `oklch(0.93 0.005 250)` | primary text, big numbers |
-| `fg.muted` | `oklch(0.72 0.006 250)` | secondary text |
-| `fg.subtle` | `oklch(0.55 0.007 250)` | labels, hints |
+**Key Characteristics:**
+- Dark-only, soft-slate surface with a single teal signal.
+- One dominant, glanceable reading per screen; everything else muted.
+- Telemetry set in tabular mono; headings and hero numbers in a friendly geometric sans.
+- Softly rounded corners (6–24px) and gentle, layered depth, never flat and never glassy.
+- Reserved color: teal for "live / on," amber for reward only, green/red for device state.
 
-### Hazard (the accent — hue ~52, safety orange)
+## 2. Colors
 
-| Token | OKLCH | Role |
-|---|---|---|
-| `hazard.solid` | `oklch(0.70 0.17 52)` | primary buttons, active nav, live |
-| `hazard.emphasized` | `oklch(0.745 0.17 52)` | hover |
-| `hazard.fg` | `oklch(0.80 0.15 62)` | accent text on steel |
-| `hazard.contrast` | `oklch(0.16 0.02 62)` | text/icon on solid hazard |
-| `hazard.muted` | `oklch(0.31 0.065 52)` | accent-tinted panel |
-| `hazard.subtle` | `oklch(0.24 0.04 52)` | faint accent wash |
+A near-monochrome slate palette carrying one calm accent, with three functional signals held in reserve. Every neutral is faintly cooled toward hue 260 so the surface reads as slate, not dead gray; no value is pure black or pure white.
 
-Chroma stays medium (~0.17), never pushed to neon. Energy comes from the L jump against dark
-steel, not glow. Registered as the Chakra `colorPalette` named **hazard**.
+### Primary
+- **Signal Teal** (`oklch(0.73 0.12 191)`): the one primary voice. Primary buttons, active navigation, the live rep counter, the "session live" banner, device-on state, focus rings, text selection. Its lighter tint (`teal-fg` `oklch(0.83 0.10 190)`) is the readable teal for text and icons on slate; its dark ink (`teal-ink` `oklch(0.18 0.03 192)`) is the text color on a teal fill.
 
-### Signals (tiny, functional, shape-backed)
+### Secondary
+- **Endurance Cyan** (`oklch(0.71 0.12 246)`): a soft blue for duration and moisture, distinct from teal so "hang time" and "humidity" never read as "live." Used on the dead-hang metric, the hang-zone gauge band, and humidity readings. Text tint `cyan-fg` (`oklch(0.82 0.085 245)`).
 
-| Token | OKLCH | Role |
-|---|---|---|
-| `online` | `oklch(0.76 0.12 155)` | device online (steel-green) |
-| `danger` | `oklch(0.63 0.18 30)` | offline, destructive (rust-red) |
+### Tertiary
+- **Reward Amber** (`oklch(0.77 0.135 72)`): warm, softened from safety-orange to honey. Strictly the reward-and-heat color: streaks, personal records, goal-hit states, and temperature. It is never a primary action. Text tint `amber-fg` (`oklch(0.85 0.115 76)`); ink on fill `amber-ink` (`oklch(0.20 0.04 70)`).
 
-Signals appear only in status dots/badges and destructive actions, always paired with an
-icon or label. Hazard is never used for "good/online" and green is never used for "live".
+### Neutral
+- **Canvas Slate** (`oklch(0.175 0.006 260)`): app background.
+- **Panel Slate** (`oklch(0.205 0.007 260)`): cards, sidebar, top bar, tiles. The default raised surface.
+- **Subtle / Muted / Emphasized Slate** (`0.225` / `0.26` / `0.30` L): inputs, raised blocks, hover surfaces, gauge tracks.
+- **Chalk** (`fg` `oklch(0.96 0.004 260)`): primary text and big numbers. **Muted** (`0.74` L) for secondary text; **Subtle** (`0.64` L) for labels, units, and hints.
+- **Borders** (`border` `0.34` L, `subtle` `0.285`, `emphasized` `0.42`): hairline structure in place of heavy shadow.
 
-## Typography
+### Signals
+- **Ready Green** (`oklch(0.73 0.125 150)`): device online / connected. Text tint `online-fg` (`0.83` L).
+- **Fault Red** (`oklch(0.56 0.175 28)`): offline, destructive actions. Deep enough that its near-white ink (`danger-ink` `oklch(0.97 0.01 28)`) clears WCAG AA on a solid fill. Text tint `danger-fg` (`0.78` L).
 
-Barlow superfamily (industrial signage grotesk) + a tabular mono for telemetry. Loaded via
-`next/font/google`, exposed as CSS vars, mapped to Chakra font tokens.
+### Named Rules
+**The One Signal Rule.** Teal means live, interactive, or on, and nothing else. It is the only accent used for primary actions and the only color that says "now." Do not spend it on decoration.
 
-| Role | Family | Use |
-|---|---|---|
-| **Display** | Barlow Condensed 700/800 | page headings and big rep/hang readouts only. Uppercase, tracking `+0.02em`. |
-| **Body** | Barlow 400/500/600 | everything interactive: nav, buttons, labels, paragraphs. Body copy capped 65–75ch. |
-| **Mono** | JetBrains Mono 400/500 | timers, distance, dBm, coordinates, chart ticks. `font-variant-numeric: tabular-nums`. |
+**The Earned-Amber Rule.** Amber appears only as a reward or a heat reading: a streak, a PR, a hit goal, a temperature. It is never a button, never a nav state, never a default accent. Its rarity is what makes a PR land.
 
-Product-register discipline: **display font never appears in buttons, form controls, or data
-cells** — those are Body or Mono. The only display uses are true headings and the hero numbers.
-Small uppercase eyebrow labels (11px, tracking `+0.18em`, `fg.subtle`, leading 1px rule) may use
-condensed or mono, since they are heading-like section markers, not controls.
+**The Tinted-Neutral Rule.** Every neutral carries hue 260 at chroma ≤0.008. Pure `#000` / `#fff` are forbidden; the slate must read as slate.
 
-Hierarchy by scale **and** weight: display steps ≥1.25 ratio, condensed 800 vs body 400 gives
-strong weight contrast. **Fixed rem scale** (product UI, consistent DPI), not fluid:
-display xl `3` · lg `2.25` · md `1.5`; body `1` / `0.875` / `0.8125`. The single exception is the
-**live** screen's hero readout, `clamp(5rem, 22vw, 13rem)` — an instrument display sized to be
-read across a room, which earns fluid scale where ordinary headings do not.
+## 3. Typography
 
-## Radii, Elevation & Texture
+**Display / Body Font:** Plus Jakarta Sans (with `-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif`). One friendly geometric sans carries headings, hero numbers, buttons, labels, and body. Headings are simply the body face at its heaviest weights.
+**Telemetry Font:** JetBrains Mono (with `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`).
 
-- **Radii are hard.** `xs 1px · sm 2px · md 3px · lg 4px · xl 6px · 2xl 8px`. Full-round is
-  reserved for status pills and the sensor gauge. No pill-shaped panels.
-- **Elevation via borders, not shadows.** Panels: `bg.panel` + 1px `border.subtle`. A single
-  inset top highlight (`box-shadow: inset 0 1px 0 rgba(chalk, .04)`) reads as a machined edge.
-  Shadows only for the mobile drawer and true overlays.
-- **Film grain.** A fixed, ~3% opacity SVG-noise overlay on the canvas. Subtle enough to feel
-  like matte metal, never a visible pattern.
-- **Hazard stripe.** 45° `repeating-linear-gradient` of hazard + transparent, ~10px pitch.
-  Used *only* on the live/on-bar banner and the PR strip. It is the "caution tape" that marks
-  a live surface; never decorative.
+**Character:** Warm, geometric, and confident without shouting. The single-family choice keeps the interface quiet; contrast comes from weight and size, not from mixing typefaces. Mono is reserved so that any *changing* number reads as an instrument.
 
-## Components
+### Hierarchy
+- **Hero Readout** (800, `clamp(7rem, 30vw, 17rem)`, line-height 0.9, tracking -0.03em, tabular): the live rep counter, read across a room. The one place fluid scale is earned.
+- **Heading** (700, `clamp(1.5rem–1.875rem)`, line-height 1.05, tracking -0.02em): page and section titles.
+- **Title** (600–700, ~1.25rem): card and dialog headings, device names.
+- **Body** (400–500, 1rem / 0.875rem): interactive text, paragraphs. Prose capped at 65–75ch.
+- **Metric** (mono, 500, tabular): timers, distances, dBm, temperatures, chart ticks, any small changing value.
+- **Eyebrow / Label** (600, 0.75rem and down to 9–11px, tracking 0.01em, `fg-subtle`): quiet section markers, often with a small teal tick.
 
-- **Panels** replace cards. Segment with 1px dividers and uppercase section labels, not nested
-  boxes. Nested cards are banned; card grids of identical tiles are banned.
-- **Buttons.** Primary = solid `hazard`, **body** font semibold (not display), radius `sm`.
-  Secondary = `bg.subtle` + 1px border. Nav = ghost; the active item gets a 3px solid hazard tab
-  on the inner (menu-facing) edge as a structural position indicator plus a hazard label. That
-  inner tab is a deliberate structural marker, not the banned decorative side-stripe on a card.
-- **Big metric.** Raw stamped number in Display 800, tabular, with a small uppercase mono unit
-  label beneath. Not wrapped in a card — it sits on the surface like a readout. This is the
-  deliberate replacement for the SaaS hero-metric template.
-- **Status badge.** Pill, `dot + label`: online green, offline rust, live hazard (blinking dot,
-  reduced-motion → steady).
-- **Inputs / sliders (Settings).** Steel fields, hazard focus ring, mono values. The distance
-  gauge is an instrument: chalk ticks, hazard needle/beam.
-- **Charts (Recharts 2.x).** Steel gridlines (`border.subtle`), hazard primary series, mono
-  tick labels, no legends-as-decoration.
+### Named Rules
+**The Telemetry-Is-Mono Rule.** If a number changes on screen (a timer, a distance, a reading, a count), it is set in JetBrains Mono with `tabular-nums` so it never jitters or reflows. Static numbers may use the sans.
 
-## Motion
+**The Weight-Not-Face Rule.** Hierarchy is built from weight (400 → 800) and size, on one family. Do not reach for a second display face to create emphasis.
 
-- Durations `fast 120ms · base 200ms · slow 320ms`. Easing ease-out only:
-  expo `cubic-bezier(0.16, 1, 0.3, 1)`, quart `cubic-bezier(0.25, 1, 0.5, 1)`. No bounce/elastic.
-- Never animate layout props (width/height/top). Transform + opacity only.
-- **Rep count:** hard, quick pop on each increment. **PR:** a one-shot "stamp" (scale from
-  1.3→1 + tiny settle), heavy not sparkly. **Live beam:** slow vertical sweep on the gauge.
-- All motion gated behind `prefers-reduced-motion: reduce` → instant state changes.
+## 4. Elevation
+
+Soft and layered, never flat and never glassy. Depth is built from three cheap, physical cues stacked in order: a tonal step up in slate (canvas → panel → subtle), a 1px structural border, and a faint machined sheen. Heavy drop shadows and glass are avoided; the panel should feel like matte, lit hardware.
+
+### Shadow Vocabulary
+- **Machined edge** (`box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 1px 2px rgba(0,0,0,0.18)`, the `.ih-machined` class): the default panel/tile depth. A one-pixel top highlight over a whisper of drop shadow reads as a bevelled metal edge.
+- **Overlay shadow** (Chakra `shadow="lg"`): reserved for true overlays only, the mobile drawer, dialogs, and the sticky save bar.
+
+### Named Rules
+**The Border-Before-Shadow Rule.** Separation is a 1px `border-subtle` and a tonal step first. Shadow is added only for genuine floating layers (drawer, dialog, sticky bar).
+
+**The Rare-Glass Rule.** `backdrop-filter: blur()` is allowed on exactly two surfaces, the sticky top bar and the sticky settings save bar, where content scrolls beneath. It is never a decorative glass card.
+
+## 5. Components
+
+### Buttons
+- **Shape:** softly rounded (8px, `rounded.sm`), body font at semibold. Never the case where a display face lands in a control.
+- **Primary:** solid Signal Teal fill with `teal-ink` text. Hover lifts one teal step.
+- **Destructive:** solid Fault Red fill with near-white `danger-ink` text (the deep red is what keeps it legible). Used for the primary confirm in a delete dialog; secondary destructive actions inside an edit flow use the outline variant instead.
+- **Secondary:** `surface-subtle` fill with a 1px border. **Ghost:** transparent, used for nav and low-emphasis actions.
+- **Touch:** interactive controls meant for look-away, across-the-room taps carry a ≥44px hit target (device toggles, climate mode/fan/swing).
+
+### Chips / Badges
+- **Style:** fully rounded pill, a small state dot plus a label. Status badges pair hue with the dot and text so state never rides on color alone: teal (live), green (online), red (offline), amber (record).
+
+### Cards / Containers
+- **Corner Style:** 14px (`rounded.lg`) for cards, 24px (`rounded.2xl`) for stat tiles.
+- **Background:** Panel Slate on Canvas Slate.
+- **Depth:** the `.ih-machined` sheen plus a 1px `border-subtle`. No nested cards.
+- **Internal Padding:** generous and varied for rhythm (roughly 16–32px), not a uniform box everywhere.
+
+### Inputs / Fields
+- **Style:** `surface-subtle` fill, 1px border, 10px radius, mono values where the field holds telemetry.
+- **Focus:** a teal focus ring (`teal-solid`). Sliders and the distance gauge are treated as instruments: chalk ticks, teal marker and threshold line.
+
+### Charts (Recharts)
+- **Style:** slate gridlines (`border-subtle`), one accent series per chart (teal for reps, amber for temperature, cyan for humidity), mono tick labels in `fg-subtle`, no decorative legends.
+- **Axis numbers:** always rounded for display. Never render a raw interpolated float (`32.349999999999994`); format ticks to the reading's real precision (whole reps, one-decimal °C / %).
+
+### Navigation
+- **Style:** a fixed 256px slate rail (drawer below `lg`), sectioned Overview / Body / Home / System with quiet uppercase-ish labels.
+- **States:** ghost by default (`fg-muted`); the active item gets a `surface-muted` fill, `teal-fg` label, and a 3px teal bar on its inner edge as a structural position marker (a deliberate indicator, not a decorative card stripe).
+
+### Signature Component — The Live Readout
+The centerpiece of the Live screen: a hero rep count in the 800-weight sans at `clamp(7rem, 30vw, 17rem)`, tabular, teal, with a soft pop on each rep and a full-screen teal wash flash. A caution-teal stripe marks the panel as a live surface while a session runs. This is HELM's deliberate replacement for the SaaS hero-metric card: a bare stamped instrument reading that sits on the surface, not in a box.
+
+## 6. Do's and Don'ts
+
+### Do:
+- **Do** keep one dominant reading per screen; mute everything else to `fg-muted` / `fg-subtle` slate.
+- **Do** spend teal only on live / interactive / on states, and amber only on earned reward and heat.
+- **Do** set every changing number in JetBrains Mono with `tabular-nums`, and round chart-axis numbers to their real precision.
+- **Do** build depth from a tonal slate step plus a 1px border plus the `.ih-machined` sheen, in that order.
+- **Do** pair every status color with a dot, icon, or label (color is never the only signal).
+- **Do** give look-away controls a ≥44px touch target and honor `prefers-reduced-motion` (all motion degrades to instant).
+- **Do** keep body text at ≥ `fg-subtle` lightness so labels clear WCAG AA (4.5:1) on slate.
+
+### Don't:
+- **Don't** build the generic SaaS dashboard: identical rounded card grids, the big-number-hero template, gradient accents, or the stock-component look.
+- **Don't** drift into the consumer smart-home app: pastel bubbles, a chatty assistant, "Good morning!" greeting cards, emoji, or confetti on a PR.
+- **Don't** use neon-on-black, gradient text (`background-clip: text`), or glow for energy; contrast and weight carry it.
+- **Don't** use teal for anything that isn't "live/on," or amber for anything that isn't a reward or a temperature.
+- **Don't** use a colored `border-left`/`border-right` greater than 1px as a decorative stripe on a card, callout, or list item.
+- **Don't** nest cards, or wrap a bare instrument reading in a card just to contain it.
+- **Don't** animate layout properties (`top`, `left`, `width`, `height`); move with `transform` and `opacity` only, ease-out, no bounce.
+- **Don't** render a raw interpolated axis float, use `backdrop-filter` glass anywhere but the two sticky bars, or use pure `#000` / `#fff`.

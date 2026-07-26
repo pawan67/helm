@@ -116,13 +116,16 @@ body {
   }
 }
 
-/* Sensor beam sweep on the distance gauge. */
+/* Sensor beam sweep on the distance gauge. Transform-only (never `top`) so the
+   loop composites on the GPU without laying out every frame. The sweeper is a
+   full-height layer; translateY(-100%→100%) carries its top-anchored band from
+   above the slot to below it. */
 @keyframes ih-sweep {
   0% {
-    top: -24%;
+    transform: translateY(-100%);
   }
   100% {
-    top: 100%;
+    transform: translateY(100%);
   }
 }
 

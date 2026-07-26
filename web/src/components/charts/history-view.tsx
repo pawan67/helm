@@ -47,6 +47,13 @@ const RANGES = [
   { value: "90", label: "90D" },
 ];
 
+// Round Y-axis ticks so Recharts' interpolated domain values (e.g.
+// 32.349999999999994) render clean; whole numbers stay whole.
+const tidyTick = (n: number) => {
+  const r = Math.round(n * 10) / 10;
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+};
+
 type ChartDatum = {
   date: string;
   label: string;
@@ -219,6 +226,8 @@ export function HistoryView({
                 tickLine={false}
                 axisLine={false}
                 width={34}
+                allowDecimals={false}
+                tickFormatter={tidyTick}
                 tick={{ fontSize: 10, fill: repsChart.color("fg.muted") }}
               />
               {goalLine > 0 ? (
@@ -298,6 +307,7 @@ export function HistoryView({
                 tickLine={false}
                 axisLine={false}
                 width={34}
+                tickFormatter={tidyTick}
                 tick={{ fontSize: 10, fill: hangChart.color("fg.muted") }}
               />
               <Tooltip
