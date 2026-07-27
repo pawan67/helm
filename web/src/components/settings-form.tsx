@@ -15,6 +15,7 @@ import {
   InputGroup,
   Slider,
   Stack,
+  Switch,
   Text,
 } from "@chakra-ui/react";
 import {
@@ -28,6 +29,7 @@ import {
   SlidersHorizontal,
   Target,
   Timer,
+  Volume2,
 } from "lucide-react";
 import { useLive } from "@/components/live-provider";
 import { toaster } from "@/components/ui/toaster";
@@ -64,6 +66,11 @@ export function SettingsForm({ initial }: { initial: Settings }) {
   const [thresholds, setThresholds] = useState<DetectionThresholds>(
     initial.thresholds,
   );
+  const [soundEnabled, setSoundEnabled] = useState(initial.soundEnabled);
+  const [beepOnRep, setBeepOnRep] = useState(initial.beepOnRep);
+  const [beepOnSessionEnd, setBeepOnSessionEnd] = useState(
+    initial.beepOnSessionEnd,
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
 
@@ -83,6 +90,9 @@ export function SettingsForm({ initial }: { initial: Settings }) {
           weeklyGoalReps,
           dailyGoalHangMs: dailyGoalHangSec * 1000,
           thresholds,
+          soundEnabled,
+          beepOnRep,
+          beepOnSessionEnd,
         }),
       });
       if (res.ok) {
@@ -197,6 +207,53 @@ export function SettingsForm({ initial }: { initial: Settings }) {
               }}
             />
           </Grid>
+        </Card.Body>
+      </Card.Root>
+
+      {/* Sound */}
+      <Card.Root bg="bg.panel">
+        <Card.Header>
+          <HStack gap="2" color="fg.muted">
+            <Icon as={Volume2} boxSize="3.5" />
+            <Eyebrow>Sound</Eyebrow>
+          </HStack>
+          <Card.Description>
+            The on-bar buzzer. Turn beeps off if the chirping bugs you — this
+            pushes to the ESP32 instantly over MQTT.
+          </Card.Description>
+        </Card.Header>
+        <Card.Body>
+          <Stack gap="5">
+            <ToggleRow
+              label="Beeps"
+              hint="Master switch for the buzzer. Off silences everything."
+              checked={soundEnabled}
+              onChange={(v) => {
+                setSoundEnabled(v);
+                setSaved(false);
+              }}
+            />
+            <ToggleRow
+              label="Chirp on each rep"
+              hint="A short beep every time a rep is counted."
+              checked={beepOnRep}
+              disabled={!soundEnabled}
+              onChange={(v) => {
+                setBeepOnRep(v);
+                setSaved(false);
+              }}
+            />
+            <ToggleRow
+              label="Jingle when a set is saved"
+              hint="A two-tone chime at the end of a set."
+              checked={beepOnSessionEnd}
+              disabled={!soundEnabled}
+              onChange={(v) => {
+                setBeepOnSessionEnd(v);
+                setSaved(false);
+              }}
+            />
+          </Stack>
         </Card.Body>
       </Card.Root>
 
@@ -353,6 +410,49 @@ function GoalField({
       </InputGroup>
       <Field.HelperText>{description}</Field.HelperText>
     </Field.Root>
+  );
+}
+
+function ToggleRow({
+  label,
+  hint,
+  checked,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <Flex
+      align="center"
+      justify="space-between"
+      gap="6"
+      opacity={disabled ? 0.5 : 1}
+    >
+      <Stack gap="0.5" minW="0">
+        <Text fontSize="sm" fontWeight="medium">
+          {label}
+        </Text>
+        <Text fontSize="xs" color="fg.subtle">
+          {hint}
+        </Text>
+      </Stack>
+      <Switch.Root
+        checked={checked}
+        onCheckedChange={(e) => onChange(e.checked)}
+        colorPalette="lime"
+        size="md"
+        disabled={disabled}
+        flexShrink="0"
+      >
+        <Switch.HiddenInput />
+        <Switch.Control />
+      </Switch.Root>
+    </Flex>
   );
 }
 
