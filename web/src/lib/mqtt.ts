@@ -184,14 +184,18 @@ async function handleEvent(deviceId: string, msg: EventMsg) {
   }
 
   if (msg.type === "session_end") {
-    // Backstop against phantom sessions from sensor glitches: a rep-free "hang"
-    // too short to be a real one is dropped before it ever reaches the DB. The
-    // firmware also gates these at the source (post-fix), but this protects the
-    // history even if an older/unflashed device is still reporting them.
-    if (msg.reps === 0 && msg.maxHangMs < MIN_SESSION_HANG_MS) {
+    // Backstop against phantom sessions from sensor glitches (e.g. sunlight
+    // briefly reading as a close target): a "workout" with at most one rep and
+    // no sustained hang is almost never real training, so drop it before it
+    // reaches the DB. A genuine set (2+ reps) or any real hang (>= the
+    // min-session floor) always passes. This can occasionally discard a real
+    // single quick rep done with almost no hang — an accepted trade to keep the
+    // history phantom-free while the sensor-side cause is fixed. Tune the `<= 1`
+    // here if it ever eats a rep you cared about.
+    if (msg.reps <= 1 && msg.maxHangMs < MIN_SESSION_HANG_MS) {
       patchLiveState({ state: "idle", reps: 0, hangMs: 0, sessionStartedAt: null });
       console.log(
-        `[mqtt] dropped phantom session (reps=0, maxHang=${msg.maxHangMs}ms)`,
+        `[mqtt] dropped phantom session (reps=${msg.reps}, maxHang=${msg.maxHangMs}ms, dur=${msg.durationMs}ms)`,
       );
       return;
     }
