@@ -60,7 +60,14 @@ function topics(deviceId: string) {
   };
 }
 
-type TelemetryMsg = { k?: string; distanceMm: number; state: DeviceState };
+type TelemetryMsg = {
+  k?: string;
+  distanceMm: number;
+  state: DeviceState;
+  /** Diagnostics (fw >= 1.3.2): raw VL53L0X range status + return signal MCps. */
+  st?: number;
+  sig?: number;
+};
 type EventMsg =
   | { k?: string; type: "session_start" }
   | { k?: string; type: "rep"; repNumber: number; upDurationMs: number; reps: number }
@@ -148,6 +155,15 @@ export function startMqtt(): MqttClient {
 function handleTelemetry(msg: TelemetryMsg) {
   if (!keyOk(msg.k)) return;
   const at = Date.now();
+  // Phantom diagnostics: log any close reading with its raw sensor status +
+  // signal. When nobody is on the bar, a <1000mm reading is a misfire — this
+  // shows whether it came with a strong return (real reflection / electrical
+  // garbage) or weak signal (noise), which tells us where the fault is.
+  if (msg.distanceMm < 1000 && msg.st !== undefined) {
+    console.log(
+      `[telemetry] close d=${msg.distanceMm}mm state=${msg.state} status=${msg.st} sig=${msg.sig?.toFixed(2)}MCps`,
+    );
+  }
   patchLiveState({
     deviceOnline: true,
     state: msg.state,

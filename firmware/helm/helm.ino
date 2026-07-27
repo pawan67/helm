@@ -38,7 +38,7 @@
 #include <ir_Panasonic.h>
 #include "config.h"
 
-#define FW_VERSION "1.3.1"
+#define FW_VERSION "1.3.2"
 
 // A rep-free session whose longest continuous hang is shorter than this is
 // treated as a sensor glitch, not a workout, and is discarded (no session_end
@@ -238,12 +238,17 @@ void stopBeep() {
 // ------------------------------------------------------------------
 //  MQTT publishing
 // ------------------------------------------------------------------
-void publishTelemetry(int distanceMm, State s) {
+void publishTelemetry(int distanceMm, State s, int rangeStatus, float signalMcps) {
   JsonDocument doc;
   doc["k"] = DEVICE_KEY;
   doc["distanceMm"] = distanceMm;
   doc["state"] = stateName(s);
-  char buf[128];
+  // Diagnostics: raw VL53L0X range status + return signal rate (MCps). Lets the
+  // server tell a genuine strong return from noise / electrical garbage when a
+  // phantom close reading appears with nothing on the bar.
+  doc["st"] = rangeStatus;
+  doc["sig"] = signalMcps;
+  char buf[160];
   size_t n = serializeJson(doc, buf, sizeof(buf));
   mqtt.publish(topicTelemetry.c_str(), (const uint8_t*)buf, n, false);
 }
@@ -624,15 +629,14 @@ void setup() {
   Serial.println("\nHELM bar-node firmware " FW_VERSION);
 
   Wire.begin();
-  // DEFAULT sensing (not LONG_RANGE). The sensor sits ~10cm from the bar and
-  // the user's head is close (<~80cm), so long range was never needed — and
-  // LONG_RANGE lowers the signal-rate limit, which makes the sensor accept weak
-  // / noisy returns as a "valid" close target when nothing is actually there.
-  // That was the source of the phantom sets/hangs in an open, dim space:
-  // DEFAULT keeps the signal-rate limit high, so those weak returns come back
-  // as "signal fail" (RangeStatus != 0) and get rejected as out-of-range.
+  // LONG_RANGE is required here: DEFAULT mode only reaches ~20cm on a head
+  // (hair absorbs IR), which is too short for a hanging body. We briefly tried
+  // DEFAULT to reject weak-signal noise, but it killed real detection AND the
+  // phantom readings persisted anyway — proving the phantoms are NOT weak-signal
+  // noise. So we keep LONG_RANGE for range and diagnose the real cause via the
+  // RangeStatus/signal fields now added to telemetry.
   if (!lox.begin(VL53L0X_I2C_ADDR, false, &Wire,
-                 Adafruit_VL53L0X::VL53L0X_SENSE_DEFAULT)) {
+                 Adafruit_VL53L0X::VL53L0X_SENSE_LONG_RANGE)) {
     Serial.println("[vl53l0x] NOT FOUND — check wiring!");
     while (true) delay(1000);
   }
@@ -673,6 +677,9 @@ void loop() {
   // the fix for phantom sets/hangs — a signal-fail reading could previously
   // masquerade as someone on the bar and auto-count reps (with a beep).
   int distance = (measure.RangeStatus == 0) ? measure.RangeMilliMeter : 9999;
+  // Return signal strength (FixPoint16.16 MCps) — a diagnostic streamed with
+  // telemetry to characterise phantom readings.
+  float signalMcps = measure.SignalRateRtnMegaCps / 65536.0f;
 
   unsigned long now = millis();
   updateBeep(now);
@@ -702,7 +709,7 @@ void loop() {
   bool bigChange = abs(distance - lastPublishedDistance) > 15;
   if (stateChanged || (now - lastTelemetry >= TELEMETRY_INTERVAL_MS && bigChange) ||
       now - lastTelemetry >= 500) {
-    publishTelemetry(distance, state);
+    publishTelemetry(distance, state, measure.RangeStatus, signalMcps);
     lastTelemetry = now;
     lastPublishedState = state;
     lastPublishedDistance = distance;
