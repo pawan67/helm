@@ -38,7 +38,7 @@
 #include <ir_Panasonic.h>
 #include "config.h"
 
-#define FW_VERSION "1.3.0"
+#define FW_VERSION "1.3.1"
 
 // A rep-free session whose longest continuous hang is shorter than this is
 // treated as a sensor glitch, not a workout, and is discarded (no session_end
@@ -624,17 +624,22 @@ void setup() {
   Serial.println("\nHELM bar-node firmware " FW_VERSION);
 
   Wire.begin();
-  // Long-range mode: default mode only reaches ~50-80cm on a low-reflectance
-  // target (a head/hair absorbs IR). LONG_RANGE lowers the signal-rate limit
-  // and lengthens the VCSEL pulses to reach ~1.5-2m. Trades a little accuracy.
+  // DEFAULT sensing (not LONG_RANGE). The sensor sits ~10cm from the bar and
+  // the user's head is close (<~80cm), so long range was never needed — and
+  // LONG_RANGE lowers the signal-rate limit, which makes the sensor accept weak
+  // / noisy returns as a "valid" close target when nothing is actually there.
+  // That was the source of the phantom sets/hangs in an open, dim space:
+  // DEFAULT keeps the signal-rate limit high, so those weak returns come back
+  // as "signal fail" (RangeStatus != 0) and get rejected as out-of-range.
   if (!lox.begin(VL53L0X_I2C_ADDR, false, &Wire,
-                 Adafruit_VL53L0X::VL53L0X_SENSE_LONG_RANGE)) {
+                 Adafruit_VL53L0X::VL53L0X_SENSE_DEFAULT)) {
     Serial.println("[vl53l0x] NOT FOUND — check wiring!");
     while (true) delay(1000);
   }
-  // Larger timing budget = more range + steadier readings (slower sampling).
-  // 50ms -> ~20Hz, plenty for rep detection. Lower it for faster sampling.
-  lox.setMeasurementTimingBudgetMicroSeconds(50000);
+  // Larger timing budget = steadier readings + better ambient rejection
+  // (slower sampling). 66ms -> ~15Hz, still ample for rep detection and a bit
+  // more noise-resistant than the old 50ms.
+  lox.setMeasurementTimingBudgetMicroSeconds(66000);
   Serial.println("[vl53l0x] ready (long-range)");
 
   dht.begin();
