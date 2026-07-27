@@ -87,10 +87,23 @@ describe("Detector", () => {
 
   it("rejects reps faster than the minimum rep time", () => {
     const t = new Trace().hold(FAR, 400).hold(HANG, 700);
-    // A very brief dip — below the 400ms floor.
-    t.hold(TOP, 150).hold(HANG, 600).hold(FAR, 2000);
+    // A very brief dip — below the 400ms floor. The hang is held long enough
+    // (past the min-session floor) that the session itself is still recorded.
+    t.hold(TOP, 150).hold(HANG, 4000).hold(FAR, 2000);
     const { end } = run(t.build());
+    expect(end).toBeDefined();
     expect(end!.reps).toBe(0);
+  });
+
+  it("discards a rep-free blip shorter than the minimum session hang", () => {
+    // Nobody really works out: a brief presence with no reps and a hang well
+    // under the min-session floor. This is the shape of a sensor glitch and
+    // must not produce a (phantom "0s dead hang") session.
+    const { events } = run(
+      new Trace().hold(FAR, 400).hold(HANG, 1500).hold(FAR, 2000).build(),
+    );
+    expect(events.some((e) => e.type === "session_start")).toBe(true);
+    expect(events.some((e) => e.type === "session_end")).toBe(false);
   });
 
   it("requires clearing the hysteresis band to count a rep", () => {

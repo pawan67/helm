@@ -38,7 +38,12 @@
 #include <ir_Panasonic.h>
 #include "config.h"
 
-#define FW_VERSION "1.2.1"
+#define FW_VERSION "1.3.0"
+
+// A rep-free session whose longest continuous hang is shorter than this is
+// treated as a sensor glitch, not a workout, and is discarded (no session_end
+// published). Mirrors MIN_SESSION_HANG_MS in web/src/lib/detection.ts.
+#define MIN_SESSION_HANG_MS 3000
 
 // ---- Ambient sensor (DHT11) ----
 #define DHT_PIN 25
@@ -474,10 +479,19 @@ void endSession(unsigned long endAt) {
   finishHangSegment(endAt);
   unsigned long start = sessionStart ? sessionStart : endAt;
   long durationMs = (long)(endAt - start);
-  publishSessionEnd(durationMs);
-  if (snd.onSessionEnd) beepSessionEnd();
-  Serial.printf("[session] end reps=%d hang=%ldms max=%ldms\n",
-                reps, (long)hangMs, (long)maxHangMs);
+  // Keep a session only if it holds a real signal: at least one counted rep, or
+  // a sustained hang. Anything shorter is a glitch — drop it silently (no
+  // publish, no end jingle) so it never becomes a phantom row.
+  bool real = (reps > 0) || (maxHangMs >= (double)MIN_SESSION_HANG_MS);
+  if (real) {
+    publishSessionEnd(durationMs);
+    if (snd.onSessionEnd) beepSessionEnd();
+    Serial.printf("[session] end reps=%d hang=%ldms max=%ldms\n",
+                  reps, (long)hangMs, (long)maxHangMs);
+  } else {
+    Serial.printf("[session] discarded phantom reps=%d max=%ldms\n",
+                  reps, (long)maxHangMs);
+  }
   resetSession();
   state = IDLE;
 }
@@ -647,7 +661,13 @@ void loop() {
 
   VL53L0X_RangingMeasurementData_t measure;
   lox.rangingTest(&measure, false);
-  int distance = (measure.RangeStatus != 4) ? measure.RangeMilliMeter : 9999;
+  // VL53L0X RangeStatus: 0 = valid; 1 = sigma fail (noisy), 2 = signal fail
+  // (no real target — often reports a bogus *small* distance), 3 = min-range,
+  // 4 = phase fail / out of range. Trust ONLY status 0: any other status means
+  // there is no reliable target, so we report it as far away (9999). This is
+  // the fix for phantom sets/hangs — a signal-fail reading could previously
+  // masquerade as someone on the bar and auto-count reps (with a beep).
+  int distance = (measure.RangeStatus == 0) ? measure.RangeMilliMeter : 9999;
 
   unsigned long now = millis();
   updateBeep(now);
