@@ -6,6 +6,7 @@ import {
   type DeviceState,
 } from "./live-bus";
 import { persistSession, persistEnvReading, getSettings } from "@/db/persist";
+import { MIN_SESSION_HANG_MS } from "./detection";
 import {
   getIrDevices,
   getIrButton,
@@ -183,6 +184,18 @@ async function handleEvent(deviceId: string, msg: EventMsg) {
   }
 
   if (msg.type === "session_end") {
+    // Backstop against phantom sessions from sensor glitches: a rep-free "hang"
+    // too short to be a real one is dropped before it ever reaches the DB. The
+    // firmware also gates these at the source (post-fix), but this protects the
+    // history even if an older/unflashed device is still reporting them.
+    if (msg.reps === 0 && msg.maxHangMs < MIN_SESSION_HANG_MS) {
+      patchLiveState({ state: "idle", reps: 0, hangMs: 0, sessionStartedAt: null });
+      console.log(
+        `[mqtt] dropped phantom session (reps=0, maxHang=${msg.maxHangMs}ms)`,
+      );
+      return;
+    }
+
     // Convert device-relative durations into absolute timestamps using the
     // server clock (the ESP32 has no reliable wall clock).
     const endedAt = new Date(at);

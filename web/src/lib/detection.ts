@@ -9,6 +9,14 @@ import type { DetectionThresholds } from "@/db/schema";
 
 export type DetectionState = "idle" | "hanging" | "rep_up";
 
+/**
+ * A rep-free session whose longest continuous hang is shorter than this is
+ * treated as a sensor glitch, not a workout, and is discarded — no session_end
+ * is emitted, so it never reaches the database. A session with at least one rep
+ * is always kept. The firmware mirrors this constant (MIN_SESSION_HANG_MS).
+ */
+export const MIN_SESSION_HANG_MS = 3000;
+
 export type DetectionEvent =
   | { type: "session_start"; at: number }
   | { type: "rep"; at: number; repNumber: number; upDurationMs: number }
@@ -178,15 +186,21 @@ export class Detector {
   private endSession(endAt: number, events: DetectionEvent[]) {
     this.finishHangSegment(endAt);
     const start = this.i.sessionStart ?? endAt;
-    events.push({
-      type: "session_end",
-      at: endAt,
-      reps: this.i.reps,
-      hangMs: Math.round(this.i.hangMs),
-      durationMs: endAt - start,
-      maxHangMs: Math.round(this.i.maxHangMs),
-      repTimings: this.i.repTimings,
-    });
+    // Keep a session only if it holds a real signal: at least one counted rep,
+    // or a sustained hang. Anything else is a glitch and is dropped silently.
+    const real =
+      this.i.reps > 0 || this.i.maxHangMs >= MIN_SESSION_HANG_MS;
+    if (real) {
+      events.push({
+        type: "session_end",
+        at: endAt,
+        reps: this.i.reps,
+        hangMs: Math.round(this.i.hangMs),
+        durationMs: endAt - start,
+        maxHangMs: Math.round(this.i.maxHangMs),
+        repTimings: this.i.repTimings,
+      });
+    }
     this.i = this.reset();
     this.window = [];
   }
