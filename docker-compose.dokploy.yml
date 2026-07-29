@@ -36,6 +36,14 @@ services:
         log_type notice
         log_type information
         EOF
+        # Regenerate the password file from scratch on every boot. `restart:
+        # unless-stopped` restarts the SAME container, so /mosquitto/config
+        # (not a volume) keeps the passwd file from the previous run — and
+        # `mosquitto_passwd -c` then aborts with "Unable to open file ... for
+        # writing. File exists.", which kills the broker and takes MQTT down
+        # for both the ESP32 and the web app. Removing it first makes this
+        # entrypoint idempotent across restarts.
+        rm -f /mosquitto/config/passwd /mosquitto/config/passwd.tmp
         mosquitto_passwd -b -c /mosquitto/config/passwd "$$MQTT_SERVER_USER" "$$MQTT_SERVER_PASS"
         mosquitto_passwd -b    /mosquitto/config/passwd "$$MQTT_DEVICE_USER" "$$MQTT_DEVICE_PASS"
         if [ "$$(id -u)" = "0" ]; then chown -R mosquitto:mosquitto /mosquitto/config /mosquitto/data; fi
