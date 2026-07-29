@@ -11,6 +11,8 @@
 import {
   haModes,
   haModeFromState,
+  haPresets,
+  haPresetFromState,
   type IrClimateConfig,
   type IrClimateState,
 } from "./ir-climate";
@@ -37,6 +39,8 @@ export function climateTopics(deviceId: string) {
     fanState: `${base}/fan/state`,
     swingSet: `${base}/swing/set`,
     swingState: `${base}/swing/state`,
+    presetSet: `${base}/preset/set`,
+    presetState: `${base}/preset/state`,
   };
 }
 
@@ -78,6 +82,9 @@ export function buildClimateDiscovery(
     swing_modes: config.swings,
     swing_mode_command_topic: t.swingSet,
     swing_mode_state_topic: t.swingState,
+    preset_modes: haPresets(config),
+    preset_mode_command_topic: t.presetSet,
+    preset_mode_state_topic: t.presetState,
     temperature_unit: "C",
     device: HA_DEVICE,
     origin: ORIGIN,
@@ -104,12 +111,21 @@ export function buildButtonDiscovery(
 //  single Home Assistant `fan` (on/off + speed). Everything else stays a button.
 // ---------------------------------------------------------------------------
 
-export type FanMapping = { powerButtonId: string; speedButtonIds: string[] };
+export type FanMapping = {
+  powerButtonId: string;
+  speedButtonIds: string[];
+  /** Mode-like buttons (Boost, Sleep) promoted to HA `preset_mode`s. */
+  presets: { name: string; buttonId: string }[];
+};
+
+/** Buttons whose label names a persistent fan mode rather than a one-shot action. */
+const FAN_PRESET_RE = /^\s*(boost|sleep|turbo)\s*$/i;
 
 /**
  * Detect a fan from a generic device's buttons by label: one "Power" button and
- * one or more "Speed N" buttons. Returns null (fall back to plain buttons) when
- * the labels don't fit the pattern. Speed buttons come back ordered 1..N.
+ * one or more "Speed N" buttons, plus any Boost/Sleep buttons promoted to preset
+ * modes. Returns null (fall back to plain buttons) when the labels don't fit the
+ * pattern. Speed buttons come back ordered 1..N.
  */
 export function deriveFanMapping(
   buttons: { id: string; label: string }[],
@@ -123,10 +139,13 @@ export function deriveFanMapping(
     .filter((x): x is { n: number; id: string } => x !== null)
     .sort((a, b) => a.n - b.n);
   if (!power || speeds.length === 0) return null;
-  return { powerButtonId: power.id, speedButtonIds: speeds.map((s) => s.id) };
+  const presets = buttons
+    .filter((b) => FAN_PRESET_RE.test(b.label))
+    .map((b) => ({ name: b.label.trim(), buttonId: b.id }));
+  return { powerButtonId: power.id, speedButtonIds: speeds.map((s) => s.id), presets };
 }
 
-/** Server-owned on/off + speed topics for a fan device. */
+/** Server-owned on/off + speed + preset topics for a fan device. */
 export function fanTopics(deviceId: string) {
   const base = `helm/fan/${deviceId}`;
   return {
@@ -134,18 +153,31 @@ export function fanTopics(deviceId: string) {
     onState: `${base}/on/state`,
     pctSet: `${base}/pct/set`,
     pctState: `${base}/pct/state`,
+    presetSet: `${base}/preset/set`,
+    presetState: `${base}/preset/state`,
   };
 }
+
+/** The idle preset — HA shows it when the fan isn't in Boost/Sleep. */
+export const FAN_PRESET_NORMAL = "Normal";
 
 /** Retained discovery config topic for a fan device. */
 export function fanConfigTopic(prefix: string, deviceId: string): string {
   return `${prefix}/fan/helm/${deviceId}/config`;
 }
 
-/** HA `fan` discovery: on/off + a 1..numSpeeds speed range mapped to Speed N. */
-export function buildFanDiscovery(deviceId: string, name: string, numSpeeds: number) {
+/**
+ * HA `fan` discovery: on/off + a 1..numSpeeds speed range mapped to Speed N, plus
+ * any Boost/Sleep buttons as `preset_mode`s (with a "Normal" idle preset).
+ */
+export function buildFanDiscovery(
+  deviceId: string,
+  name: string,
+  numSpeeds: number,
+  presetNames: string[] = [],
+) {
   const t = fanTopics(deviceId);
-  return {
+  const base = {
     name,
     unique_id: `helm_ir_fan_${deviceId}`,
     command_topic: t.onSet,
@@ -159,17 +191,25 @@ export function buildFanDiscovery(deviceId: string, name: string, numSpeeds: num
     device: HA_DEVICE,
     origin: ORIGIN,
   };
+  if (presetNames.length === 0) return base;
+  return {
+    ...base,
+    preset_modes: [FAN_PRESET_NORMAL, ...presetNames],
+    preset_mode_command_topic: t.presetSet,
+    preset_mode_state_topic: t.presetState,
+  };
 }
 
-/** The retained state messages that report a fan's on/off + speed back to HA. */
+/** The retained state messages that report a fan's on/off + speed + preset back to HA. */
 export function fanStateMessages(
   deviceId: string,
-  state: { on: boolean; speed: number },
+  state: { on: boolean; speed: number; preset?: string | null },
 ): { topic: string; payload: string }[] {
   const t = fanTopics(deviceId);
   return [
     { topic: t.onState, payload: state.on ? "ON" : "OFF" },
     { topic: t.pctState, payload: String(state.speed) },
+    { topic: t.presetState, payload: state.preset ?? FAN_PRESET_NORMAL },
   ];
 }
 
@@ -184,6 +224,7 @@ export function climateStateMessages(
     { topic: t.tempState, payload: String(state.tempC) },
     { topic: t.fanState, payload: state.fan },
     { topic: t.swingState, payload: state.swing },
+    { topic: t.presetState, payload: haPresetFromState(state) },
   ];
 }
 
@@ -193,14 +234,16 @@ export const HA_COMMAND_FILTERS = [
   "helm/ir/+/temp/set",
   "helm/ir/+/fan/set",
   "helm/ir/+/swing/set",
+  "helm/ir/+/preset/set",
   "helm/ir/button/+/fire",
   "helm/fan/+/on/set",
   "helm/fan/+/pct/set",
+  "helm/fan/+/preset/set",
 ] as const;
 
 export type HaCommand =
-  | { kind: "mode" | "temp" | "fan" | "swing"; deviceId: string }
-  | { kind: "fan_on" | "fan_pct"; deviceId: string }
+  | { kind: "mode" | "temp" | "fan" | "swing" | "preset"; deviceId: string }
+  | { kind: "fan_on" | "fan_pct" | "fan_preset"; deviceId: string }
   | { kind: "fire"; buttonId: string };
 
 /** Parse an incoming HA command topic into a structured command, or null. */
@@ -210,17 +253,18 @@ export function parseHaCommandTopic(topic: string): HaCommand | null {
   if (parts.length === 5 && parts[0] === "helm" && parts[1] === "ir" && parts[2] === "button" && parts[4] === "fire") {
     return { kind: "fire", buttonId: parts[3] };
   }
-  // helm/ir/<id>/<mode|temp|fan|swing>/set
+  // helm/ir/<id>/<mode|temp|fan|swing|preset>/set
   if (parts.length === 5 && parts[0] === "helm" && parts[1] === "ir" && parts[4] === "set") {
     const field = parts[3];
-    if (field === "mode" || field === "temp" || field === "fan" || field === "swing") {
+    if (field === "mode" || field === "temp" || field === "fan" || field === "swing" || field === "preset") {
       return { kind: field, deviceId: parts[2] };
     }
   }
-  // helm/fan/<id>/<on|pct>/set
+  // helm/fan/<id>/<on|pct|preset>/set
   if (parts.length === 5 && parts[0] === "helm" && parts[1] === "fan" && parts[4] === "set") {
     if (parts[3] === "on") return { kind: "fan_on", deviceId: parts[2] };
     if (parts[3] === "pct") return { kind: "fan_pct", deviceId: parts[2] };
+    if (parts[3] === "preset") return { kind: "fan_preset", deviceId: parts[2] };
   }
   return null;
 }

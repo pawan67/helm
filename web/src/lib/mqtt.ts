@@ -19,6 +19,7 @@ import {
   buildButtonCmd,
   normalizeClimate,
   patchFromHaMode,
+  patchFromHaPreset,
   DEFAULT_PANASONIC_CONFIG,
   type ClimatePatch,
   type IrClimateState,
@@ -34,6 +35,7 @@ import {
   fanStateMessages,
   deriveFanMapping,
   parseHaCommandTopic,
+  FAN_PRESET_NORMAL,
   HA_COMMAND_FILTERS,
 } from "./ha-discovery";
 import type { IrDevice, IrButton } from "@/db/schema";
@@ -459,39 +461,54 @@ export async function fireIrButton(buttonId: string): Promise<boolean> {
   return publishIrCmd(buildButtonCmd(button));
 }
 
-// Optimistic on/off + speed per fan device. IR is one-way, so this is best-effort
-// and resets on restart (HA re-seeds it as off via the retained discovery state).
-type FanState = { on: boolean; speed: number };
+// Optimistic on/off + speed + preset per fan device. IR is one-way, so this is
+// best-effort and resets on restart (HA re-seeds it via the retained discovery state).
+type FanState = { on: boolean; speed: number; preset: string | null };
 const fanStates = new Map<string, FanState>();
+const defaultFanState = (): FanState => ({ on: false, speed: 1, preset: null });
 
 /**
- * Apply a fan command from HA: map on/off → the Power button (toggle) and a
- * speed (1..N) → the matching Speed button, then publish the new optimistic
- * state back. No-ops for devices whose buttons don't form a fan.
+ * Apply a fan command from HA: map on/off → the Power button (toggle), a speed
+ * (1..N) → the matching Speed button, and a preset (Boost/Sleep) → its button,
+ * then publish the new optimistic state back. Setting a speed or power clears any
+ * active preset. No-ops for devices whose buttons don't form a fan.
  */
 async function applyFanCommand(
   deviceId: string,
-  cmd: { on?: boolean; speed?: number },
+  cmd: { on?: boolean; speed?: number; preset?: string },
 ): Promise<void> {
   const device = (await getIrDevices()).find((d) => d.id === deviceId);
   if (!device || device.kind !== "generic") return;
   const mapping = deriveFanMapping(device.buttons);
   if (!mapping) return;
 
-  const prev = fanStates.get(deviceId) ?? { on: false, speed: 1 };
+  const prev = fanStates.get(deviceId) ?? defaultFanState();
   let next: FanState = { ...prev };
 
-  if (cmd.speed != null && Number.isFinite(cmd.speed)) {
+  if (cmd.preset != null) {
+    if (cmd.preset === FAN_PRESET_NORMAL) {
+      next.preset = null; // just clears the badge; nothing to transmit
+    } else {
+      const p = mapping.presets.find(
+        (x) => x.name.toLowerCase() === cmd.preset!.toLowerCase(),
+      );
+      if (p) {
+        await fireIrButton(p.buttonId);
+        next = { on: true, speed: prev.speed, preset: p.name };
+      }
+    }
+  } else if (cmd.speed != null && Number.isFinite(cmd.speed)) {
     const idx =
       Math.min(mapping.speedButtonIds.length, Math.max(1, Math.round(cmd.speed))) - 1;
     const btnId = mapping.speedButtonIds[idx];
     if (btnId) {
       await fireIrButton(btnId);
-      next = { on: true, speed: idx + 1 }; // setting a speed also powers the fan on
+      next = { on: true, speed: idx + 1, preset: null }; // a speed also powers on + leaves the preset
     }
   } else if (cmd.on != null && cmd.on !== prev.on) {
     await fireIrButton(mapping.powerButtonId); // Power is a toggle
     next.on = cmd.on;
+    next.preset = null;
   }
 
   fanStates.set(deviceId, next);
@@ -527,10 +544,15 @@ async function handleHaCommand(
       await applyFanCommand(ha.deviceId, { speed: Number(payload) });
       return;
     }
+    if (ha.kind === "fan_preset") {
+      await applyFanCommand(ha.deviceId, { preset: payload });
+      return;
+    }
     let patch: ClimatePatch;
     if (ha.kind === "mode") patch = patchFromHaMode(payload);
     else if (ha.kind === "temp") patch = { tempC: Number(payload) };
     else if (ha.kind === "swing") patch = { swing: payload as IrClimateState["swing"] };
+    else if (ha.kind === "preset") patch = patchFromHaPreset(payload);
     else patch = { fan: payload as IrClimateState["fan"] };
     await applyClimateAndBroadcast(ha.deviceId, patch);
   } catch (err) {
@@ -578,21 +600,31 @@ export async function publishHaDiscovery(): Promise<void> {
       );
       publishClimateStateToHa(device.id, normalizeClimate(device.state, config));
     } else {
-      // Promote Power + Speed N into one `fan`; keep any other buttons as buttons.
+      // Promote Power + Speed N into one `fan`, and Boost/Sleep into its preset
+      // modes; keep any other buttons (Timer, LED) as standalone buttons.
       const mapping = deriveFanMapping(device.buttons);
       const mapped = mapping
-        ? new Set([mapping.powerButtonId, ...mapping.speedButtonIds])
+        ? new Set([
+            mapping.powerButtonId,
+            ...mapping.speedButtonIds,
+            ...mapping.presets.map((p) => p.buttonId),
+          ])
         : new Set<string>();
 
       if (mapping) {
         client.publish(
           fanConfigTopic(prefix, device.id),
           JSON.stringify(
-            buildFanDiscovery(device.id, device.name, mapping.speedButtonIds.length),
+            buildFanDiscovery(
+              device.id,
+              device.name,
+              mapping.speedButtonIds.length,
+              mapping.presets.map((p) => p.name),
+            ),
           ),
           { qos: 1, retain: true },
         );
-        publishFanStateToHa(device.id, fanStates.get(device.id) ?? { on: false, speed: 1 });
+        publishFanStateToHa(device.id, fanStates.get(device.id) ?? defaultFanState());
       }
 
       for (const button of device.buttons) {

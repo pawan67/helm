@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { applyClimateAndBroadcast } from "@/lib/mqtt";
-import { CLIMATE_MODES, CLIMATE_FANS, CLIMATE_SWINGS, type ClimatePatch } from "@/lib/ir-climate";
+import {
+  CLIMATE_MODES,
+  CLIMATE_FANS,
+  CLIMATE_SWINGS,
+  CLIMATE_SWINGS_H,
+  CLIMATE_PRESETS,
+  type ClimatePatch,
+} from "@/lib/ir-climate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,6 +34,10 @@ export async function POST(req: NextRequest) {
     patch.fan = raw.fan as ClimatePatch["fan"];
   if (typeof raw.swing === "string" && (CLIMATE_SWINGS as readonly string[]).includes(raw.swing))
     patch.swing = raw.swing as ClimatePatch["swing"];
+  if (typeof raw.swingH === "string" && (CLIMATE_SWINGS_H as readonly string[]).includes(raw.swingH))
+    patch.swingH = raw.swingH as ClimatePatch["swingH"];
+  if (typeof raw.preset === "string" && (CLIMATE_PRESETS as readonly string[]).includes(raw.preset))
+    patch.preset = raw.preset as ClimatePatch["preset"];
 
   const state = await applyClimateAndBroadcast(deviceId, patch);
   if (!state) return NextResponse.json({ error: "Not a climate device" }, { status: 404 });

@@ -7,6 +7,8 @@ import {
   haModeFromState,
   haModes,
   patchFromHaMode,
+  haPresets,
+  patchFromHaPreset,
   DEFAULT_PANASONIC_CONFIG,
   DEFAULT_CLIMATE_STATE,
   type IrClimateState,
@@ -49,7 +51,15 @@ describe("applyClimatePatch", () => {
 
 describe("firmware command builders", () => {
   it("builds the climate command payload the firmware expects", () => {
-    const state: IrClimateState = { power: true, mode: "cool", tempC: 22, fan: "low", swing: "auto" };
+    const state: IrClimateState = {
+      power: true,
+      mode: "cool",
+      tempC: 22,
+      fan: "low",
+      swing: "auto",
+      swingH: "middle",
+      preset: "quiet",
+    };
     expect(buildClimateCmd(state, cfg)).toEqual({
       t: "climate",
       model: "DKE",
@@ -58,6 +68,8 @@ describe("firmware command builders", () => {
       tempC: 22,
       fan: "low",
       swing: "auto",
+      swingH: "middle",
+      preset: "quiet",
     });
   });
 
@@ -87,5 +99,26 @@ describe("Home Assistant mode mapping", () => {
     expect(patchFromHaMode("off")).toEqual({ power: false });
     expect(patchFromHaMode("cool")).toEqual({ power: true, mode: "cool" });
     expect(patchFromHaMode("fan_only")).toEqual({ power: true, mode: "fan" });
+  });
+});
+
+describe("Home Assistant preset mapping", () => {
+  it("advertises none/quiet/powerful presets", () => {
+    expect(haPresets(cfg)).toEqual(["none", "quiet", "powerful"]);
+  });
+
+  it("turns a valid preset into a patch and rejects junk", () => {
+    expect(patchFromHaPreset("quiet")).toEqual({ preset: "quiet" });
+    expect(patchFromHaPreset("powerful")).toEqual({ preset: "powerful" });
+    expect(patchFromHaPreset("bogus")).toEqual({ preset: "none" });
+  });
+
+  it("defaults presets/swingH for configs seeded before they existed", () => {
+    const legacy = { ...DEFAULT_PANASONIC_CONFIG } as Record<string, unknown>;
+    delete legacy.presets;
+    delete legacy.swingsH;
+    const state = normalizeClimate({ preset: "quiet", swingH: "left" }, legacy as never);
+    expect(state.preset).toBe("quiet");
+    expect(state.swingH).toBe("left");
   });
 });

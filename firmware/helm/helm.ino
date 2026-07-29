@@ -1,11 +1,11 @@
 /*
  * HELM — bar-node firmware (ESP32 + VL53L0X + DHT11 + passive buzzer)
  * ---------------------------------------------------------------
- * The "bar node" of a HELM console: pull-up / dead-hang detection, ambient
- * temperature & humidity, and a buzzer, all streamed to the server over MQTT.
- * Reads a VL53L0X time-of-flight sensor mounted ~10cm above the bar (pointing
- * outward at the user), detects pull-up reps and dead-hang time with a state
- * machine, and streams everything to the server over MQTT.
+ * The "bar node" of a HELM console. Reads a VL53L0X time-of-flight sensor
+ * mounted ~10cm above the bar (pointing outward at the user), detects pull-up
+ * reps and dead-hang time with a state machine, samples a DHT11 for ambient
+ * temperature & humidity, drives a passive buzzer, and streams everything to
+ * the server over MQTT.
  *
  * The detection logic mirrors web/src/lib/detection.ts one-to-one.
  *
@@ -41,7 +41,7 @@
 #include <Update.h>
 #include "config.h"
 
-#define FW_VERSION "1.4.0"
+#define FW_VERSION "1.5.0"  // + Panasonic AC quiet/powerful presets & horizontal swing
 
 // A rep-free session whose longest continuous hang is shorter than this is
 // treated as a sensor glitch, not a workout, and is discarded (no session_end
@@ -413,6 +413,15 @@ uint8_t panasonicSwing(const char* s) {
   return kPanasonicAcSwingVAuto;  // default
 }
 
+uint8_t panasonicSwingH(const char* s) {
+  if (!strcmp(s, "full_left")) return kPanasonicAcSwingHFullLeft;
+  if (!strcmp(s, "left")) return kPanasonicAcSwingHLeft;
+  if (!strcmp(s, "middle")) return kPanasonicAcSwingHMiddle;
+  if (!strcmp(s, "right")) return kPanasonicAcSwingHRight;
+  if (!strcmp(s, "full_right")) return kPanasonicAcSwingHFullRight;
+  return kPanasonicAcSwingHAuto;  // default
+}
+
 void sendClimate(JsonDocument& doc) {
   const char* model = doc["model"] | "DKE";
   bool power = doc["power"] | false;
@@ -420,6 +429,8 @@ void sendClimate(JsonDocument& doc) {
   int tempC = doc["tempC"] | 24;
   const char* fan = doc["fan"] | "auto";
   const char* swing = doc["swing"] | "auto";
+  const char* swingH = doc["swingH"] | "auto";
+  const char* preset = doc["preset"] | "none";
 
   panasonicAc.setModel(panasonicModel(model));
   panasonicAc.setPower(power);
@@ -427,8 +438,14 @@ void sendClimate(JsonDocument& doc) {
   panasonicAc.setTemp((uint8_t)tempC);
   panasonicAc.setFan(panasonicFan(fan));
   panasonicAc.setSwingVertical(panasonicSwing(swing));
+  panasonicAc.setSwingHorizontal(panasonicSwingH(swingH));
+  // Quiet (low-noise "sleep") and Powerful (turbo) are mutually exclusive; the
+  // library handles the CKP/RKR bit-swap internally.
+  panasonicAc.setQuiet(!strcmp(preset, "quiet"));
+  panasonicAc.setPowerful(!strcmp(preset, "powerful"));
   panasonicAc.send();
-  Serial.printf("[ir] climate %s power=%d %s %dC fan=%s\n", model, power, mode, tempC, fan);
+  Serial.printf("[ir] climate %s power=%d %s %dC fan=%s swingH=%s preset=%s\n",
+                model, power, mode, tempC, fan, swingH, preset);
 }
 
 void sendButton(JsonDocument& doc) {

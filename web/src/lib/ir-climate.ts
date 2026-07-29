@@ -27,6 +27,24 @@ export const CLIMATE_SWINGS = [
 ] as const;
 export type ClimateSwing = (typeof CLIMATE_SWINGS)[number];
 
+/** Canonical horizontal (left-right) swing positions — Panasonic setSwingHorizontal. */
+export const CLIMATE_SWINGS_H = [
+  "auto",
+  "full_left",
+  "left",
+  "middle",
+  "right",
+  "full_right",
+] as const;
+export type ClimateSwingH = (typeof CLIMATE_SWINGS_H)[number];
+
+/**
+ * Special presets — Panasonic Quiet (low-noise, the remote's "sleep") and
+ * Powerful (turbo). Mutually exclusive, so one enum rather than two flags.
+ */
+export const CLIMATE_PRESETS = ["none", "quiet", "powerful"] as const;
+export type ClimatePreset = (typeof CLIMATE_PRESETS)[number];
+
 /** Panasonic remote models understood by IRremoteESP8266's IRPanasonicAc. */
 export const PANASONIC_MODELS = ["DKE", "NKE", "LKE", "JKE", "CKP", "RKR"] as const;
 export type PanasonicModel = (typeof PANASONIC_MODELS)[number];
@@ -38,6 +56,8 @@ export type IrClimateState = {
   tempC: number;
   fan: ClimateFan;
   swing: ClimateSwing;
+  swingH: ClimateSwingH;
+  preset: ClimatePreset;
 };
 
 /** Capabilities of a climate device — drives both the UI and HA discovery. */
@@ -51,6 +71,8 @@ export type IrClimateConfig = {
   modes: ClimateMode[];
   fans: ClimateFan[];
   swings: ClimateSwing[];
+  swingsH: ClimateSwingH[];
+  presets: ClimatePreset[];
 };
 
 export const DEFAULT_PANASONIC_CONFIG: IrClimateConfig = {
@@ -61,7 +83,20 @@ export const DEFAULT_PANASONIC_CONFIG: IrClimateConfig = {
   modes: ["auto", "cool", "heat", "dry", "fan"],
   fans: ["auto", "min", "low", "med", "high", "max"],
   swings: ["auto", "highest", "high", "middle", "low", "lowest"],
+  swingsH: ["auto", "full_left", "left", "middle", "right", "full_right"],
+  presets: ["none", "quiet", "powerful"],
 };
+
+/**
+ * Fill any missing config fields from the Panasonic defaults. Rows seeded before
+ * swingsH/presets existed store a config without them; merging keeps those rows
+ * working without a data migration.
+ */
+export function resolveClimateConfig(
+  config: Partial<IrClimateConfig> | null | undefined,
+): IrClimateConfig {
+  return { ...DEFAULT_PANASONIC_CONFIG, ...(config ?? {}) };
+}
 
 export const DEFAULT_CLIMATE_STATE: IrClimateState = {
   power: false,
@@ -69,6 +104,8 @@ export const DEFAULT_CLIMATE_STATE: IrClimateState = {
   tempC: 24,
   fan: "auto",
   swing: "auto",
+  swingH: "auto",
+  preset: "none",
 };
 
 const clampInt = (v: number, lo: number, hi: number) =>
@@ -82,14 +119,17 @@ export function normalizeClimate(
   raw: Partial<IrClimateState> | null | undefined,
   config: IrClimateConfig = DEFAULT_PANASONIC_CONFIG,
 ): IrClimateState {
+  const cfg = resolveClimateConfig(config);
   const base = { ...DEFAULT_CLIMATE_STATE };
   const r = raw ?? {};
   return {
     power: typeof r.power === "boolean" ? r.power : base.power,
-    mode: oneOf(r.mode, config.modes, base.mode),
-    tempC: clampInt(typeof r.tempC === "number" ? r.tempC : base.tempC, config.tempMin, config.tempMax),
-    fan: oneOf(r.fan, config.fans, base.fan),
-    swing: oneOf(r.swing, config.swings, base.swing),
+    mode: oneOf(r.mode, cfg.modes, base.mode),
+    tempC: clampInt(typeof r.tempC === "number" ? r.tempC : base.tempC, cfg.tempMin, cfg.tempMax),
+    fan: oneOf(r.fan, cfg.fans, base.fan),
+    swing: oneOf(r.swing, cfg.swings, base.swing),
+    swingH: oneOf(r.swingH, cfg.swingsH, base.swingH),
+    preset: oneOf(r.preset, cfg.presets, base.preset),
   };
 }
 
@@ -109,6 +149,8 @@ export function applyClimatePatch(
       tempC: patch.tempC ?? current.tempC,
       fan: patch.fan ?? current.fan,
       swing: patch.swing ?? current.swing,
+      swingH: patch.swingH ?? current.swingH,
+      preset: patch.preset ?? current.preset,
     },
     config,
   );
@@ -126,17 +168,21 @@ export type ClimateCmd = {
   tempC: number;
   fan: ClimateFan;
   swing: ClimateSwing;
+  swingH: ClimateSwingH;
+  preset: ClimatePreset;
 };
 
 export function buildClimateCmd(state: IrClimateState, config: IrClimateConfig): ClimateCmd {
   return {
     t: "climate",
-    model: config.model,
+    model: resolveClimateConfig(config).model,
     power: state.power,
     mode: state.mode,
     tempC: state.tempC,
     fan: state.fan,
     swing: state.swing,
+    swingH: state.swingH,
+    preset: state.preset,
   };
 }
 
@@ -184,4 +230,23 @@ export function haModes(config: IrClimateConfig): string[] {
 export function patchFromHaMode(mode: string): ClimatePatch {
   if (mode === "off") return { power: false };
   return { power: true, mode: (mode === "fan_only" ? "fan" : mode) as ClimateMode };
+}
+
+/** The list of HA `preset_mode`s for discovery (none / quiet / powerful). */
+export function haPresets(config: IrClimateConfig): string[] {
+  return resolveClimateConfig(config).presets;
+}
+
+/** The HA `preset_mode` string for a state. */
+export function haPresetFromState(state: IrClimateState): string {
+  return state.preset;
+}
+
+/** Turn an incoming HA `preset_mode` command into a state patch. */
+export function patchFromHaPreset(preset: string): ClimatePatch {
+  return {
+    preset: (CLIMATE_PRESETS as readonly string[]).includes(preset)
+      ? (preset as ClimatePreset)
+      : "none",
+  };
 }

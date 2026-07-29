@@ -21,7 +21,7 @@ import { useLive } from "@/components/live-provider";
 import {
   applyClimatePatch,
   normalizeClimate,
-  DEFAULT_PANASONIC_CONFIG,
+  resolveClimateConfig,
   type ClimatePatch,
   type IrClimateState,
 } from "@/lib/ir-climate";
@@ -50,6 +50,19 @@ const SWING_LABEL: Record<string, string> = {
   middle: "Mid",
   low: "Low",
   lowest: "Btm",
+};
+const SWING_H_LABEL: Record<string, string> = {
+  auto: "Auto",
+  full_left: "◀◀",
+  left: "◀",
+  middle: "Mid",
+  right: "▶",
+  full_right: "▶▶",
+};
+const PRESET_LABEL: Record<string, string> = {
+  none: "Normal",
+  quiet: "Quiet",
+  powerful: "Turbo",
 };
 
 /** A row of toggle buttons; the active value is highlighted. */
@@ -106,7 +119,7 @@ export function ClimateCard({
   editMode: boolean;
   onEdit: () => void;
 }) {
-  const config = device.config ?? DEFAULT_PANASONIC_CONFIG;
+  const config = resolveClimateConfig(device.config);
   const { irClimate } = useLive();
   const [state, setState] = useState<IrClimateState>(() => normalizeClimate(device.state, config));
 
@@ -230,12 +243,28 @@ export function ClimateCard({
           onSelect={(v) => send({ fan: v as IrClimateState["fan"] })}
         />
         <ToggleRow
-          label="Swing"
+          label="Swing (up/down)"
           options={config.swings}
           labels={SWING_LABEL}
           value={state.swing}
           disabled={!on}
           onSelect={(v) => send({ swing: v as IrClimateState["swing"] })}
+        />
+        <ToggleRow
+          label="Swing (left/right)"
+          options={config.swingsH}
+          labels={SWING_H_LABEL}
+          value={state.swingH}
+          disabled={!on}
+          onSelect={(v) => send({ swingH: v as IrClimateState["swingH"] })}
+        />
+        <ToggleRow
+          label="Preset"
+          options={config.presets}
+          labels={PRESET_LABEL}
+          value={state.preset}
+          disabled={!on}
+          onSelect={(v) => send({ preset: v as IrClimateState["preset"] })}
         />
 
         <HStack gap="2" color="fg.subtle">
