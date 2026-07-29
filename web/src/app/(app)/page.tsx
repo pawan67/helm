@@ -105,7 +105,7 @@ export default async function DashboardPage() {
                     <Eyebrow>Today</Eyebrow>
                     <Heading size="xl" color={goalHit ? "lime.fg" : "fg"}>
                       {goalHit ? (
-                        "Goal smashed"
+                        "Goal met"
                       ) : (
                         <>
                           {toGo}{" "}

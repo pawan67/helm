@@ -23,8 +23,9 @@ mosquitto/passwd
 mosquitto/data/
 mosquitto/log/
 
-# firmware local config
+# firmware local config + Arduino compiled-binary output
 firmware/**/config.h
+firmware/**/build/
 
 # local backup of the pre-HELM web app (kept on disk, not tracked)
 web_old/
