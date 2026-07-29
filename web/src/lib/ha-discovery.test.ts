@@ -38,18 +38,20 @@ describe("buildButtonDiscovery", () => {
 });
 
 describe("climateStateMessages", () => {
-  it("emits mode/temp/fan state payloads", () => {
+  it("emits mode/temp/fan/swing state payloads", () => {
     const msgs = climateStateMessages("dev1", {
       ...DEFAULT_CLIMATE_STATE,
       power: true,
       mode: "cool",
       tempC: 21,
       fan: "high",
+      swing: "auto",
     });
     expect(msgs).toEqual([
       { topic: climateTopics("dev1").modeState, payload: "cool" },
       { topic: climateTopics("dev1").tempState, payload: "21" },
       { topic: climateTopics("dev1").fanState, payload: "high" },
+      { topic: climateTopics("dev1").swingState, payload: "auto" },
     ]);
   });
 
