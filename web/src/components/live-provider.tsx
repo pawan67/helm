@@ -13,6 +13,7 @@ import type { IrClimateState } from "@/lib/ir-climate";
 
 type SessionEnd = Extract<LiveEvent, { kind: "session_end" }>;
 type RepEvent = Extract<LiveEvent, { kind: "rep" }>;
+type OtaProgress = Extract<LiveEvent, { kind: "ota_progress" }>;
 
 type LiveContextValue = {
   state: LiveState;
@@ -27,6 +28,9 @@ type LiveContextValue = {
   irClimate: Record<string, IrClimateState>;
   /** Monotonic counter that ticks each time the device confirms an IR send. */
   irAckTick: number;
+  /** Latest OTA firmware-push progress from the device (null when idle). */
+  ota: OtaProgress | null;
+  clearOta: () => void;
 };
 
 const defaultState: LiveState = {
@@ -38,6 +42,10 @@ const defaultState: LiveState = {
   sessionStartedAt: null,
   rssi: null,
   fwVersion: null,
+  uptimeSec: null,
+  heapFree: null,
+  ipAddress: null,
+  lastStatusAt: null,
   tempC: null,
   humidity: null,
   updatedAt: 0,
@@ -53,6 +61,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [lastSessionEnd, setLastSessionEnd] = useState<SessionEnd | null>(null);
   const [irClimate, setIrClimate] = useState<Record<string, IrClimateState>>({});
   const [irAckTick, setIrAckTick] = useState(0);
+  const [ota, setOta] = useState<OtaProgress | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -113,7 +122,17 @@ export function LiveProvider({ children }: { children: ReactNode }) {
             ...s,
             deviceOnline: ev.online,
             state: ev.online ? s.state : "offline",
+            rssi: ev.rssi ?? s.rssi,
+            fwVersion: ev.fwVersion ?? s.fwVersion,
+            uptimeSec: ev.online ? ev.uptimeSec : s.uptimeSec,
+            heapFree: ev.online ? ev.heapFree : s.heapFree,
+            ipAddress: ev.online ? ev.ipAddress : s.ipAddress,
+            lastStatusAt: ev.at,
           }));
+          break;
+        case "ota_progress":
+          // A fresh push starts a new run; keep updating until success/error.
+          setOta(ev);
           break;
         case "env":
           setState((s) => ({
@@ -151,6 +170,8 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         clearSessionEnd: () => setLastSessionEnd(null),
         irClimate,
         irAckTick,
+        ota,
+        clearOta: () => setOta(null),
       }}
     >
       {children}

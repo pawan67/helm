@@ -69,8 +69,10 @@ at the top of a pull-up your head rises close to the sensor.
   `pullup/<DEVICE_ID>/event`.
 - Publishes temperature and humidity every 60 s to `pullup/<DEVICE_ID>/env`
   (sampled only when idle so the DHT read never stalls a rep).
-- Publishes retained online/offline status to `pullup/<DEVICE_ID>/status`
-  (offline is delivered by the MQTT Last-Will if the device drops).
+- Publishes retained status to `pullup/<DEVICE_ID>/status` every ~15 s —
+  online flag, firmware version, Wi-Fi RSSI, uptime, free heap and IP — which
+  drives the web **Device** health panel. Offline is delivered by the MQTT
+  Last-Will if the device drops.
 - Subscribes to the retained `pullup/<DEVICE_ID>/config` topic; whenever you
   change thresholds or the buzzer toggles in the web **Settings** page, the new
   values arrive instantly — **no reflashing needed**.
@@ -84,6 +86,30 @@ at the top of a pull-up your head rises close to the sensor.
   distance sampling for a few tens of ms).
   It acks each send on `pullup/<DEVICE_ID>/ir/ack`. Devices/buttons are managed
   on the web **Remote** page; nothing is hard-coded in firmware.
+- Subscribes to `pullup/<DEVICE_ID>/ota` for **over-the-air firmware updates**
+  (see below) and reports progress on `pullup/<DEVICE_ID>/ota/status`.
+
+## Over-the-air (OTA) updates
+
+After the first USB flash you can update the firmware wirelessly from the web
+console — no cable:
+
+1. In the Arduino IDE, **Sketch → Export Compiled Binary**. This writes
+   `helm.ino.bin` next to the sketch (in `build/…/`).
+2. In the web app open **System → Device**, upload that `.bin`, and hit **Push**.
+3. The console publishes the image URL + MD5 on `pullup/<DEVICE_ID>/ota`; the
+   device downloads it straight from the app over HTTP(S), verifies the MD5,
+   flashes the idle OTA partition, and reboots into it. Progress streams back to
+   the panel; on reboot the new version shows under **Firmware**.
+
+Notes:
+- The OTA code uses `HTTPClient`, `Update` and `WiFiClientSecure`, all part of
+  the ESP32 core — **no extra libraries** to install.
+- Use a partition scheme with two app slots (the default *"Default 4MB with
+  spiffs"* has `ota_0`/`ota_1`, so OTA works out of the box). **Tools → Partition
+  Scheme** in the IDE.
+- A bad or interrupted download aborts cleanly and keeps the running firmware;
+  the error surfaces on the Device panel.
 
 ## Calibration
 

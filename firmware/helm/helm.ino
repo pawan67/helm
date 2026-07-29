@@ -36,9 +36,12 @@
 #include <IRsend.h>
 #include <IRutils.h>
 #include <ir_Panasonic.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+#include <Update.h>
 #include "config.h"
 
-#define FW_VERSION "1.3.2"
+#define FW_VERSION "1.4.0"
 
 // A rep-free session whose longest continuous hang is shorter than this is
 // treated as a sensor glitch, not a workout, and is discarded (no session_end
@@ -141,11 +144,25 @@ PubSubClient mqtt(wifiClient);
 Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 
 String topicTelemetry, topicEvent, topicStatus, topicConfig, topicEnv, topicIrCmd, topicIrAck;
+// OTA: server publishes a firmware push on topicOta; we stream progress back on
+// topicOtaStatus and reboot into the new image on success.
+String topicOta, topicOtaStatus;
 
 unsigned long lastTelemetry = 0;
 const unsigned long TELEMETRY_INTERVAL_MS = 80;
 State lastPublishedState = IDLE;
 int lastPublishedDistance = -1;
+
+// Status heartbeat: republish the retained status (rssi/uptime/heap/ip) on a
+// slow timer so the console's device-health panel stays fresh and a silent crash
+// surfaces as a stale reading even before the MQTT last-will fires.
+unsigned long lastStatusPub = 0;
+const unsigned long STATUS_INTERVAL_MS = 15000;
+
+// A firmware push arrives inside the MQTT callback; we stash it and run the
+// (blocking) download+flash from the main loop to avoid re-entering mqtt.loop().
+String otaCmd;
+bool otaPending = false;
 
 // ------------------------------------------------------------------
 //  Helpers
@@ -300,7 +317,10 @@ void publishStatus(bool online) {
   doc["online"] = online;
   doc["fw"] = FW_VERSION;
   doc["rssi"] = WiFi.RSSI();
-  char buf[128];
+  doc["up"] = (uint32_t)(millis() / 1000);   // uptime, seconds
+  doc["heap"] = (uint32_t)ESP.getFreeHeap();  // free heap, bytes
+  doc["ip"] = WiFi.localIP().toString();
+  char buf[224];
   size_t n = serializeJson(doc, buf, sizeof(buf));
   mqtt.publish(topicStatus.c_str(), (const uint8_t*)buf, n, true);  // retained
 }
@@ -439,9 +459,166 @@ void sendIrCmd(const String& json) {
 }
 
 // ------------------------------------------------------------------
+//  OTA firmware update (pushed from the console over MQTT)
+// ------------------------------------------------------------------
+// The server publishes {url, version, md5, size} on topicOta; we download the
+// image over HTTP(S) straight from the console and flash it, streaming progress
+// back on topicOtaStatus so the panel can show a live bar. On success we reboot
+// into the new partition; on any failure we abort cleanly and keep running.
+void publishOtaStatus(const char* phase, int percent, const char* version, const char* error) {
+  JsonDocument doc;
+  doc["k"] = DEVICE_KEY;
+  doc["phase"] = phase;
+  if (percent >= 0) doc["percent"] = percent;
+  if (version && version[0]) doc["version"] = version;
+  if (error && error[0]) doc["error"] = error;
+  char buf[224];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  mqtt.publish(topicOtaStatus.c_str(), (const uint8_t*)buf, n, false);
+  mqtt.loop();  // flush the outgoing packet before we block on the download
+}
+
+void performOta(const String& url, const String& version, const String& md5, int expectedSize) {
+  Serial.printf("[ota] push v%s <- %s (%d bytes)\n", version.c_str(), url.c_str(), expectedSize);
+  publishOtaStatus("start", 0, version.c_str(), nullptr);
+
+  // Pick a plain or TLS client from the URL scheme. setInsecure() skips cert
+  // validation — fine for pulling a signed-by-md5 image off your own console.
+  WiFiClientSecure secureClient;
+  WiFiClient plainClient;
+  WiFiClient* netClient;
+  if (url.startsWith("https")) {
+    secureClient.setInsecure();
+    netClient = &secureClient;
+  } else {
+    netClient = &plainClient;
+  }
+
+  HTTPClient http;
+  if (!http.begin(*netClient, url)) {
+    publishOtaStatus("error", -1, nullptr, "http begin failed");
+    return;
+  }
+  http.setTimeout(15000);
+  int code = http.GET();
+  if (code != HTTP_CODE_OK) {
+    char e[40];
+    snprintf(e, sizeof(e), "http %d", code);
+    http.end();
+    publishOtaStatus("error", -1, nullptr, e);
+    return;
+  }
+
+  int len = http.getSize();
+  if (len <= 0) len = expectedSize;  // chunked / no Content-Length: fall back
+  if (len <= 0) {
+    http.end();
+    publishOtaStatus("error", -1, nullptr, "unknown size");
+    return;
+  }
+
+  if (!Update.begin(len)) {
+    http.end();
+    publishOtaStatus("error", -1, nullptr, "no OTA space");
+    return;
+  }
+  if (md5.length() == 32) Update.setMD5(md5.c_str());  // integrity check on end()
+
+  WiFiClient* stream = http.getStreamPtr();
+  uint8_t buf[1024];
+  int written = 0;
+  int lastPct = -10;
+  unsigned long lastData = millis();
+
+  while (written < len) {
+    size_t avail = stream->available();
+    if (avail) {
+      int toRead = avail > sizeof(buf) ? sizeof(buf) : (int)avail;
+      int r = stream->readBytes(buf, toRead);
+      if (r > 0) {
+        if (Update.write(buf, r) != (size_t)r) {
+          Update.abort();
+          http.end();
+          publishOtaStatus("error", -1, nullptr, "flash write failed");
+          return;
+        }
+        written += r;
+        lastData = millis();
+        int pct = (int)((long)written * 100 / len);
+        if (pct - lastPct >= 10) {
+          publishOtaStatus("progress", pct, nullptr, nullptr);
+          lastPct = pct;
+        }
+      }
+    } else {
+      if (!http.connected() && written < len) break;  // socket closed early
+      if (millis() - lastData > 15000) {               // stalled download
+        Update.abort();
+        http.end();
+        publishOtaStatus("error", -1, nullptr, "download stalled");
+        return;
+      }
+      delay(1);
+    }
+  }
+
+  if (!Update.end(true) || !Update.isFinished()) {
+    char e[64];
+    snprintf(e, sizeof(e), "verify failed: %s", Update.errorString());
+    http.end();
+    publishOtaStatus("error", -1, nullptr, e);
+    return;
+  }
+  http.end();
+
+  Serial.println("[ota] flashed OK, rebooting into new image");
+  publishOtaStatus("success", 100, version.c_str(), nullptr);
+  delay(500);
+  ESP.restart();
+}
+
+// Parse a stashed OTA command and run it. Called from loop() while IDLE.
+void runPendingOta() {
+  if (!otaPending) return;
+  otaPending = false;
+  JsonDocument doc;
+  if (deserializeJson(doc, otaCmd)) {
+    publishOtaStatus("error", -1, nullptr, "bad command json");
+    return;
+  }
+  String url = doc["url"] | "";
+  String version = doc["version"] | "";
+  String md5 = doc["md5"] | "";
+  int size = doc["size"] | 0;
+  if (url.length() == 0) {
+    publishOtaStatus("error", -1, nullptr, "missing url");
+    return;
+  }
+  performOta(url, version, md5, size);
+}
+
+// ------------------------------------------------------------------
 //  Config (retained) from server
 // ------------------------------------------------------------------
 void onMessage(char* topic, byte* payload, unsigned int len) {
+  // A firmware push: verify the shared secret, stash the command, and let the
+  // main loop run the blocking download (never re-enter mqtt.loop() from here).
+  if (String(topic) == topicOta) {
+    JsonDocument doc;
+    if (deserializeJson(doc, payload, len)) return;
+    const char* k = doc["k"] | "";
+    if (strlen(DEVICE_KEY) > 0 && strcmp(k, DEVICE_KEY) != 0) {
+      Serial.println("[ota] rejected: bad key");
+      return;
+    }
+    char buf[512];
+    unsigned int n = len < sizeof(buf) - 1 ? len : sizeof(buf) - 1;
+    memcpy(buf, payload, n);
+    buf[n] = 0;
+    otaCmd = String(buf);
+    otaPending = true;
+    return;
+  }
   // IR commands arrive on their own topic; queue them for IDLE transmission.
   if (String(topic) == topicIrCmd) {
     char buf[256];
@@ -588,6 +765,8 @@ void setupTopics() {
   topicEnv = base + "env";
   topicIrCmd = base + "ir/cmd";
   topicIrAck = base + "ir/ack";
+  topicOta = base + "ota";
+  topicOtaStatus = base + "ota/status";
 }
 
 void connectWifi() {
@@ -615,7 +794,9 @@ void connectMqtt() {
       Serial.println(" connected");
       mqtt.subscribe(topicConfig.c_str(), 1);
       mqtt.subscribe(topicIrCmd.c_str(), 1);
+      mqtt.subscribe(topicOta.c_str(), 1);
       publishStatus(true);
+      lastStatusPub = millis();
     } else {
       Serial.printf(" failed rc=%d, retry in 3s\n", mqtt.state());
       delay(3000);
@@ -684,6 +865,16 @@ void loop() {
   unsigned long now = millis();
   updateBeep(now);
   processSample(distance, now);
+
+  // A firmware push blocks (download + flash + reboot); only run it between sets
+  // so it never interrupts an active session.
+  if (otaPending && state == IDLE) runPendingOta();
+
+  // Periodic retained status heartbeat (rssi/uptime/heap/ip) for the panel.
+  if (now - lastStatusPub >= STATUS_INTERVAL_MS) {
+    publishStatus(true);
+    lastStatusPub = now;
+  }
 
   // Sample ambient temp/humidity on a slow timer. Only when idle so the DHT's
   // blocking read never stalls mid-rep (first reading a few seconds after boot).

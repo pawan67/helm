@@ -13,10 +13,19 @@ import { verifyToken, COOKIE_NAME } from "@/lib/session";
 // so a Bixby Quick Command / NFC tag / widget can fire them without logging in.
 const PUBLIC_PATHS = ["/login", "/api/auth/login", "/a"];
 
+// The firmware image download is device-facing: the bar node has no session
+// cookie, so it's gated by the device key (`?k=`) inside the route itself, like
+// an action link. Only the `.../bin` leaf is public — upload/list/delete/push
+// stay behind the cookie.
+const FIRMWARE_BIN_PATH = /^\/api\/system\/firmware\/[^/]+\/bin$/;
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    return NextResponse.next();
+  }
+  if (FIRMWARE_BIN_PATH.test(pathname)) {
     return NextResponse.next();
   }
 

@@ -11,7 +11,15 @@ import {
   pgEnum,
   jsonb,
   index,
+  customType,
 } from "drizzle-orm/pg-core";
+
+/** Raw binary column (Postgres bytea) for storing firmware images in-row. */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 import type { IrClimateConfig, IrClimateState } from "../lib/ir-climate";
 import type { ScheduleAction } from "../lib/schedule";
 
@@ -137,6 +145,33 @@ export const settings = pgTable("settings", {
   tempLoggingEnabled: boolean("temp_logging_enabled").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * A firmware image uploaded through the console, kept in-row (bytea) so a fresh
+ * deploy needs no extra volume. The bar node downloads the selected image over
+ * HTTP during an OTA push and flashes it. History is retained for rollback.
+ */
+export const firmwareUploads = pgTable(
+  "firmware_uploads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Human version label (e.g. "1.4.0"); free-form, defaults to the filename. */
+    version: text("version").notNull(),
+    filename: text("filename").notNull(),
+    /** Image size in bytes. */
+    size: integer("size").notNull(),
+    /** Hex MD5 of the image — sent with the push so the device verifies integrity. */
+    md5: text("md5").notNull(),
+    notes: text("notes").notNull().default(""),
+    /** The raw `.bin`. */
+    data: bytea("data").notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("firmware_uploads_uploaded_idx").on(t.uploadedAt)],
+);
+
+export type FirmwareUpload = typeof firmwareUploads.$inferSelect;
+export type NewFirmwareUpload = typeof firmwareUploads.$inferInsert;
 
 // ---------------------------------------------------------------------------
 //  IR remote (infrared blaster on the bar node)

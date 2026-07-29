@@ -57,6 +57,10 @@ function topics(deviceId: string) {
     irCmd: `pullup/${deviceId}/ir/cmd`,
     /** Device → server: confirmation that an IR frame was sent. */
     irAck: `pullup/${deviceId}/ir/ack`,
+    /** Server → device: firmware push {url, version, md5, size}. */
+    ota: `pullup/${deviceId}/ota`,
+    /** Device → server: OTA progress {phase, percent, version, error}. */
+    otaStatus: `pullup/${deviceId}/ota/status`,
   };
 }
 
@@ -80,9 +84,27 @@ type EventMsg =
       maxHangMs: number;
       repTimings?: { repNumber: number; offsetMs: number; upDurationMs: number }[];
     };
-type StatusMsg = { k?: string; online: boolean; fw?: string; rssi?: number };
+type StatusMsg = {
+  k?: string;
+  online: boolean;
+  fw?: string;
+  rssi?: number;
+  /** Uptime in seconds (fw >= 1.4.0). */
+  up?: number;
+  /** Free heap in bytes (fw >= 1.4.0). */
+  heap?: number;
+  /** Device LAN IP (fw >= 1.4.0). */
+  ip?: string;
+};
 type EnvMsg = { k?: string; tempC?: number; humidity?: number };
 type IrAckMsg = { k?: string; ok?: boolean; kind?: string };
+type OtaStatusMsg = {
+  k?: string;
+  phase?: "start" | "progress" | "success" | "error";
+  percent?: number;
+  version?: string;
+  error?: string;
+};
 
 /** Verify the device shared-secret when present (defense in depth). */
 function keyOk(k: string | undefined): boolean {
@@ -108,7 +130,7 @@ export function startMqtt(): MqttClient {
 
   client.on("connect", async () => {
     console.log(`[mqtt] connected to ${env.mqttUrl}`);
-    const subs = [t.telemetry, t.event, t.status, t.env, t.irAck];
+    const subs = [t.telemetry, t.event, t.status, t.env, t.irAck, t.otaStatus];
     if (env.haDiscoveryEnabled) subs.push(...HA_COMMAND_FILTERS);
     client.subscribe(subs, { qos: 1 }, (err) => {
       if (err) console.error("[mqtt] subscribe error:", err);
@@ -147,6 +169,7 @@ export function startMqtt(): MqttClient {
     else if (topic === t.status) handleStatus(payload as StatusMsg);
     else if (topic === t.env) void handleEnv(deviceId, payload as EnvMsg);
     else if (topic === t.irAck) handleIrAck(payload as IrAckMsg);
+    else if (topic === t.otaStatus) handleOtaStatus(payload as OtaStatusMsg);
   });
 
   return client;
@@ -263,15 +286,57 @@ async function handleEvent(deviceId: string, msg: EventMsg) {
 
 function handleStatus(msg: StatusMsg) {
   if (!keyOk(msg.k)) return;
+  const at = Date.now();
+  const rssi = num(msg.rssi);
+  const fwVersion = msg.fw ?? null;
+  const uptimeSec = num(msg.up);
+  const heapFree = num(msg.heap);
+  const ipAddress = typeof msg.ip === "string" && msg.ip ? msg.ip : null;
+
   const patch: Parameters<typeof patchLiveState>[0] = {
     deviceOnline: msg.online,
-    rssi: msg.rssi ?? null,
-    fwVersion: msg.fw ?? null,
+    rssi,
+    fwVersion,
+    lastStatusAt: at,
   };
-  // Only force state to "offline" when going offline; keep it otherwise.
-  if (!msg.online) patch.state = "offline";
+  // A last-will "offline" carries no telemetry; keep the last-known health.
+  if (msg.online) {
+    patch.uptimeSec = uptimeSec;
+    patch.heapFree = heapFree;
+    patch.ipAddress = ipAddress;
+  } else {
+    // Only force state to "offline" when going offline; keep it otherwise.
+    patch.state = "offline";
+  }
   patchLiveState(patch);
-  publishLive({ kind: "device_status", online: msg.online, at: Date.now() });
+  publishLive({
+    kind: "device_status",
+    online: msg.online,
+    at,
+    rssi,
+    fwVersion,
+    uptimeSec: msg.online ? uptimeSec : null,
+    heapFree: msg.online ? heapFree : null,
+    ipAddress: msg.online ? ipAddress : null,
+  });
+}
+
+/** OTA progress from the device during a firmware push — relay it to the console. */
+function handleOtaStatus(msg: OtaStatusMsg) {
+  if (!keyOk(msg.k)) return;
+  const phase = msg.phase ?? "progress";
+  console.log(
+    `[ota] ${phase}${msg.percent != null ? ` ${msg.percent}%` : ""}` +
+      `${msg.version ? ` v${msg.version}` : ""}${msg.error ? ` — ${msg.error}` : ""}`,
+  );
+  publishLive({
+    kind: "ota_progress",
+    phase,
+    percent: num(msg.percent),
+    version: msg.version ?? null,
+    error: msg.error ?? null,
+    at: Date.now(),
+  });
 }
 
 /**
@@ -345,6 +410,25 @@ function publishIrCmd(payload: object): boolean {
   if (!client || !client.connected) return false;
   const body = JSON.stringify({ k: env.deviceKey || undefined, ...payload });
   client.publish(topics(env.deviceId).irCmd, body, { qos: 1, retain: false });
+  return true;
+}
+
+/**
+ * Push a firmware image to the bar node. The device pulls the `.bin` from `url`
+ * (served by this app), verifies `md5`, flashes it, and reboots. Not retained —
+ * a push is a one-shot command, never replayed on reconnect.
+ */
+export function publishOtaCommand(cmd: {
+  url: string;
+  version: string;
+  md5: string;
+  size: number;
+}): boolean {
+  const client = globalForMqtt.__mqttClient;
+  if (!client || !client.connected) return false;
+  const body = JSON.stringify({ k: env.deviceKey || undefined, ...cmd });
+  client.publish(topics(env.deviceId).ota, body, { qos: 1, retain: false });
+  console.log(`[mqtt] pushed OTA v${cmd.version} (${cmd.size} bytes) -> ${cmd.url}`);
   return true;
 }
 

@@ -49,6 +49,14 @@ export const env = {
   get haDiscoveryPrefix() {
     return required("HA_DISCOVERY_PREFIX", "homeassistant");
   },
+  /**
+   * Base URL the bar node uses to download a firmware image during an OTA push
+   * (e.g. `http://192.168.1.50:3000`). Leave unset to derive it from the origin
+   * the operator's browser used to trigger the push — correct in most setups.
+   */
+  get otaBaseUrl() {
+    return required("OTA_BASE_URL");
+  },
 };
 
 export const DEVICE_ID = env.deviceId;

@@ -27,6 +27,7 @@ import {
   Tv,
   CalendarClock,
   Zap,
+  Cpu,
   Settings2,
   LogOut,
   Menu,
@@ -67,7 +68,10 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
   {
     title: "System",
-    items: [{ label: "Settings", href: "/settings", icon: Settings2 }],
+    items: [
+      { label: "Device", href: "/device", icon: Cpu },
+      { label: "Settings", href: "/settings", icon: Settings2 },
+    ],
   },
 ];
 

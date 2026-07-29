@@ -21,6 +21,10 @@ console you can open from anywhere.
 - **Buzzer + live tuning** — chirp on each rep and a jingle on session end (toggle
   in Settings), plus detection thresholds that push to the device instantly over
   MQTT, no reflashing.
+- **Device health + OTA firmware** — a **Device** panel with live signal, uptime,
+  free memory and IP, plus **over-the-air firmware updates**: upload a compiled
+  `.bin` in the console and push it to the bar node, which verifies, flashes and
+  reboots itself — no USB cable.
 
 **Planned:** a **Remote** node (IR blaster) to command the TV, AC, and anything
 else that speaks infrared, from the same console.
@@ -154,3 +158,4 @@ when you're actually hanging. Changes save straight to the device over MQTT.
 | `DEVICE_ID` | web + firmware | Which node/device (topic namespace) |
 | `DEVICE_KEY` | web + firmware | Shared secret in every device payload |
 | `APP_TIMEZONE` | web | Local day for streaks/goals (e.g. `America/New_York`) |
+| `OTA_BASE_URL` | web | *(optional)* URL the device downloads firmware from during an OTA push. Unset = derive from the browser's origin; set to the app's LAN IP if the device can't reach that |

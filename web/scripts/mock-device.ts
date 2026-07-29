@@ -39,12 +39,86 @@ const base = `pullup/${DEVICE_ID}`;
 const client = mqtt.connect(MQTT_URL, {
   username: MQTT_USER || undefined,
   password: MQTT_PASS || undefined,
+  // Mirror the firmware's last-will so offline detection is testable.
+  will: {
+    topic: `${base}/status`,
+    payload: JSON.stringify({ k: DEVICE_KEY, online: false }),
+    qos: 1,
+    retain: true,
+  },
 });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function pub(topic: string, payload: object, retain = false) {
   client.publish(topic, JSON.stringify({ k: DEVICE_KEY, ...payload }), { qos: 1, retain });
+}
+
+// Simulated firmware version — bumped when an OTA push "flashes" successfully.
+let fwVersion = "1.4.0";
+
+/** Retained status heartbeat matching the fw >= 1.4.0 shape (health panel). */
+function publishStatus() {
+  pub(
+    `${base}/status`,
+    {
+      online: true,
+      fw: fwVersion,
+      rssi: -52 - Math.round(Math.random() * 12),
+      up: Math.round(process.uptime()),
+      heap: 205000 + Math.round(Math.random() * 25000),
+      ip: "192.168.1.42",
+    },
+    true,
+  );
+}
+
+/**
+ * Simulate an OTA push: actually download the image from the server-provided URL
+ * (validating the /bin route end-to-end), stream progress frames back, then
+ * "reboot" into the new version by republishing status.
+ */
+async function simulateOta(cmdJson: string) {
+  let cmd: { url?: string; version?: string; size?: number; md5?: string };
+  try {
+    cmd = JSON.parse(cmdJson);
+  } catch {
+    return;
+  }
+  const { url, version, size } = cmd;
+  console.log(`↯ OTA push v${version} <- ${url} (${size} bytes)`);
+  pub(`${base}/ota/status`, { phase: "start", percent: 0, version });
+
+  if (!url) {
+    pub(`${base}/ota/status`, { phase: "error", error: "missing url" });
+    return;
+  }
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.log(`  download HTTP ${res.status}`);
+      pub(`${base}/ota/status`, { phase: "error", error: `http ${res.status}` });
+      return;
+    }
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    console.log(
+      `  downloaded ${bytes.length} bytes (magic 0x${(bytes[0] ?? 0).toString(16)})`,
+    );
+  } catch (e) {
+    console.log(`  download error: ${(e as Error).message}`);
+    pub(`${base}/ota/status`, { phase: "error", error: "download failed" });
+    return;
+  }
+
+  for (let p = 20; p <= 100; p += 20) {
+    await sleep(300);
+    pub(`${base}/ota/status`, { phase: "progress", percent: p });
+  }
+  pub(`${base}/ota/status`, { phase: "success", percent: 100, version });
+  fwVersion = version || fwVersion;
+  console.log(`  flashed — now running v${fwVersion}`);
+  await sleep(600);
+  publishStatus();
 }
 
 // Detector translates our synthetic distance stream into firmware-shaped events.
@@ -158,10 +232,14 @@ async function main() {
   });
   console.log(`mock-device connected to ${MQTT_URL} as ${DEVICE_ID}`);
 
-  // Act like the bar node's IR blaster: log each command and echo an ack, so the
-  // /remote page can be exercised end-to-end without hardware.
-  client.subscribe(`${base}/ir/cmd`, { qos: 1 });
+  // Act like the bar node: echo IR acks and handle OTA pushes, so /remote and
+  // /device can be exercised end-to-end without hardware.
+  client.subscribe([`${base}/ir/cmd`, `${base}/ota`], { qos: 1 });
   client.on("message", (topic, buf) => {
+    if (topic === `${base}/ota`) {
+      void simulateOta(buf.toString());
+      return;
+    }
     if (topic !== `${base}/ir/cmd`) return;
     try {
       const cmd = JSON.parse(buf.toString());
@@ -182,9 +260,24 @@ async function main() {
 
   const [mode, arg] = process.argv.slice(2);
 
+  publishStatus(); // announce online with full health so /device populates
   publishEnv(); // one reading up front so the live temp shows immediately
 
-  if (mode === "env") {
+  if (mode === "online") {
+    // Stay connected, heartbeat status + env, and service OTA pushes. Ideal for
+    // exercising the /device health panel and firmware over-the-air flow.
+    console.log("mock-device online — heartbeating status, listening for OTA. Ctrl-C to stop.");
+    let i = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      await sleep(5000);
+      publishStatus();
+      if (i++ % 6 === 0) {
+        clock += 60000;
+        publishEnv();
+      }
+    }
+  } else if (mode === "env") {
     const count = Number(arg) || 10;
     for (let i = 0; i < count; i++) {
       clock += 60000; // advance the drift baseline between readings
