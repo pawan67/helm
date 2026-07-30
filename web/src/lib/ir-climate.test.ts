@@ -103,8 +103,8 @@ describe("Home Assistant mode mapping", () => {
 });
 
 describe("Home Assistant preset mapping", () => {
-  it("advertises none/quiet/powerful presets", () => {
-    expect(haPresets(cfg)).toEqual(["none", "quiet", "powerful"]);
+  it("advertises quiet/powerful presets (omits the reserved 'none' HA adds implicitly)", () => {
+    expect(haPresets(cfg)).toEqual(["quiet", "powerful"]);
   });
 
   it("turns a valid preset into a patch and rejects junk", () => {

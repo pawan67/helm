@@ -232,9 +232,15 @@ export function patchFromHaMode(mode: string): ClimatePatch {
   return { power: true, mode: (mode === "fan_only" ? "fan" : mode) as ClimateMode };
 }
 
-/** The list of HA `preset_mode`s for discovery (none / quiet / powerful). */
+/**
+ * The list of HA `preset_mode`s for discovery (quiet / powerful). HA provides
+ * the reserved "none" preset implicitly and *rejects* a discovery `preset_modes`
+ * list that includes it ("preset_modes must not include preset mode 'none'"),
+ * which fails the whole climate entity — so we omit it here. "none" is still the
+ * value used for state reporting and to clear a preset via command.
+ */
 export function haPresets(config: IrClimateConfig): string[] {
-  return resolveClimateConfig(config).presets;
+  return resolveClimateConfig(config).presets.filter((p) => p !== "none");
 }
 
 /** The HA `preset_mode` string for a state. */

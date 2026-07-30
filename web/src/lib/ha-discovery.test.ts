@@ -30,9 +30,9 @@ describe("buildClimateDiscovery", () => {
 });
 
 describe("buildClimateDiscovery preset modes", () => {
-  it("advertises none/quiet/powerful preset modes on their own topic", () => {
+  it("advertises quiet/powerful preset modes on their own topic (no reserved 'none')", () => {
     const d = buildClimateDiscovery("dev1", "Panasonic AC", DEFAULT_PANASONIC_CONFIG);
-    expect(d.preset_modes).toEqual(["none", "quiet", "powerful"]);
+    expect(d.preset_modes).toEqual(["quiet", "powerful"]);
     expect(d.preset_mode_command_topic).toBe("helm/ir/dev1/preset/set");
     expect(d.preset_mode_state_topic).toBe("helm/ir/dev1/preset/state");
   });
