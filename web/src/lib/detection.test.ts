@@ -106,6 +106,36 @@ describe("Detector", () => {
     expect(events.some((e) => e.type === "session_end")).toBe(false);
   });
 
+  it("does not end a set at a stale absence time after a mid-set blip", () => {
+    // A brief out-of-range blip mid-set (sensor noise / a swing) sets the
+    // absence timer, then the user pulls up again before it expires. If the
+    // absence timer isn't cleared when the pull-up (rep_up) begins, the set
+    // later ends at that stale, pre-rep timestamp — which is BEFORE the last
+    // hang segment started. On the device that underflows the unsigned ms
+    // subtraction into a ~2^31 "best hang" (the infamous "35791m 24s").
+    const t = new Trace()
+      .hold(FAR, 400) // idle
+      .hold(HANG, 700) // grab -> session starts
+      .hold(TOP, 500) // rep 1 up
+      .hold(HANG, 500) // rep 1 down (counted)
+      .hold(FAR, 300) // brief blip -> arms the absence timer (< release)
+      .hold(TOP, 500) // pull up again -> must clear the absence timer
+      .hold(FAR, 2000); // let go from the top -> rep 2 counts, then session ends
+    const { events, end } = run(t.build());
+    const start = events.find((e) => e.type === "session_start") as
+      | Extract<DetectionEvent, { type: "session_start" }>
+      | undefined;
+    expect(end).toBeDefined();
+    expect(start).toBeDefined();
+    expect(end!.reps).toBe(2);
+    // The set must not end before its own last rep happened.
+    const lastRep = end!.repTimings[end!.repTimings.length - 1];
+    expect(start!.at + end!.durationMs).toBeGreaterThanOrEqual(lastRep.at);
+    // And the "best hang" must be a sane, non-negative span within the set.
+    expect(end!.maxHangMs).toBeGreaterThanOrEqual(0);
+    expect(end!.maxHangMs).toBeLessThanOrEqual(end!.durationMs);
+  });
+
   it("requires clearing the hysteresis band to count a rep", () => {
     const t = new Trace().hold(FAR, 400).hold(HANG, 700);
     t.hold(TOP, 500) // armed (below 200)

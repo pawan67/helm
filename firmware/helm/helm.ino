@@ -41,7 +41,7 @@
 #include <Update.h>
 #include "config.h"
 
-#define FW_VERSION "1.5.0"  // + Panasonic AC quiet/powerful presets & horizontal swing
+#define FW_VERSION "1.6.0"  // sensor-health watchdog + hang-timer underflow fix
 
 // A rep-free session whose longest continuous hang is shorter than this is
 // treated as a sensor glitch, not a workout, and is discarded (no session_end
@@ -142,6 +142,20 @@ unsigned long beepStepStart = 0;
 WiFiClient wifiClient;
 PubSubClient mqtt(wifiClient);
 Adafruit_VL53L0X lox = Adafruit_VL53L0X();
+
+// ---- VL53L0X sensor-health watchdog ----
+// The sensor (or the I2C bus) can wedge: rangingTest starts returning an error,
+// or a "valid" (RangeStatus 0) reading with a physically impossible distance
+// (e.g. the 45201mm phantom). Left alone this freezes detection until a manual
+// power-cycle. We reject such readings, and if the fault persists we re-init the
+// sensor, then reboot as a last resort so the node self-heals. A legit "no
+// target" reading (nobody on the bar) is healthy, so an idle bar never trips it.
+#define SENSOR_MAX_PLAUSIBLE_MM 4000    // long-range tops out ~2m; >4m is garbage
+#define SENSOR_RECOVER_AFTER_MS 6000    // re-init after this long continuously faulting
+#define SENSOR_REBOOT_AFTER_MS 40000    // reboot if re-inits don't clear the fault
+#define SENSOR_RECOVER_EVERY_MS 3000    // min spacing between re-init attempts
+unsigned long lastSensorOkAt = 0;       // last healthy reading (target or not)
+unsigned long lastSensorRecoverAt = 0;
 
 String topicTelemetry, topicEvent, topicStatus, topicConfig, topicEnv, topicIrCmd, topicIrAck;
 // OTA: server publishes a firmware push on topicOta; we stream progress back on
@@ -664,12 +678,35 @@ void onMessage(char* topic, byte* payload, unsigned int len) {
 }
 
 // ------------------------------------------------------------------
+//  Sensor recovery
+// ------------------------------------------------------------------
+// Re-initialize the VL53L0X after a sustained fault (I2C wedge / lockup).
+// Cycling the Wire bus clears a stuck line; begin() re-runs the sensor's data +
+// static init so ranging resumes without a manual reset.
+void recoverSensor() {
+  Serial.println("[vl53l0x] fault — re-initializing");
+  Wire.end();
+  delay(10);
+  Wire.begin();
+  if (lox.begin(VL53L0X_I2C_ADDR, false, &Wire,
+                Adafruit_VL53L0X::VL53L0X_SENSE_LONG_RANGE)) {
+    lox.setMeasurementTimingBudgetMicroSeconds(66000);
+    Serial.println("[vl53l0x] re-init OK");
+  } else {
+    Serial.println("[vl53l0x] re-init FAILED — will retry / reboot");
+  }
+}
+
+// ------------------------------------------------------------------
 //  Detection state machine (mirrors detection.ts)
 // ------------------------------------------------------------------
 void finishHangSegment(unsigned long now) {
   if (hasHangSegment) {
-    double seg = (double)(now - hangSegmentStart);
-    if (seg > maxHangMs) maxHangMs = seg;
+    // Signed diff so a segment that ends *before* it began (a stale end
+    // timestamp) is rejected instead of underflowing the unsigned millis clock
+    // into a garbage ~2^31ms span — the cause of the bogus "35791m 24s" hang.
+    long seg = (long)(now - hangSegmentStart);
+    if (seg > 0 && (double)seg > maxHangMs) maxHangMs = (double)seg;
     hasHangSegment = false;
   }
 }
@@ -736,6 +773,11 @@ void processSample(int rawDistance, unsigned long now) {
 
     case HANGING:
       if (d < th.repNearMm) {
+        // Closest point of a rep — unambiguously present, so cancel any pending
+        // release timer. A stale, pre-rep absence timestamp left armed here can
+        // later end the set *before* the rep it precedes, underflowing the hang
+        // clock into the bogus ~2^31ms "best hang".
+        hasAbsentSince = false;
         finishHangSegment(now);
         state = REP_UP;
         hasRepStart = true;
@@ -842,6 +884,7 @@ void setup() {
   // (slower sampling). 66ms -> ~15Hz, still ample for rep detection and a bit
   // more noise-resistant than the old 50ms.
   lox.setMeasurementTimingBudgetMicroSeconds(66000);
+  lastSensorOkAt = millis();  // arm the health watchdog from a known-good state
   Serial.println("[vl53l0x] ready (long-range)");
 
   dht.begin();
@@ -867,19 +910,45 @@ void loop() {
   mqtt.loop();
 
   VL53L0X_RangingMeasurementData_t measure;
-  lox.rangingTest(&measure, false);
+  VL53L0X_Error rangeErr = lox.rangingTest(&measure, false);
+  unsigned long now = millis();
+
   // VL53L0X RangeStatus: 0 = valid; 1 = sigma fail (noisy), 2 = signal fail
   // (no real target — often reports a bogus *small* distance), 3 = min-range,
-  // 4 = phase fail / out of range. Trust ONLY status 0: any other status means
-  // there is no reliable target, so we report it as far away (9999). This is
-  // the fix for phantom sets/hangs — a signal-fail reading could previously
-  // masquerade as someone on the bar and auto-count reps (with a beep).
-  int distance = (measure.RangeStatus == 0) ? measure.RangeMilliMeter : 9999;
+  // 4 = phase fail / out of range. Trust ONLY a clean I2C transaction with
+  // status 0 AND a physically plausible distance: any other status means no
+  // reliable target, and a status-0 reading above the sensor's real range is
+  // garbage (the 45201mm phantom). Both report as far away (9999) so a bogus
+  // close/huge value never masquerades as someone on the bar (and auto-counts).
+  bool plausible = measure.RangeMilliMeter <= SENSOR_MAX_PLAUSIBLE_MM;
+  bool validTarget =
+      (rangeErr == VL53L0X_ERROR_NONE) && (measure.RangeStatus == 0) && plausible;
+  int distance = validTarget ? measure.RangeMilliMeter : 9999;
   // Return signal strength (FixPoint16.16 MCps) — a diagnostic streamed with
   // telemetry to characterise phantom readings.
   float signalMcps = measure.SignalRateRtnMegaCps / 65536.0f;
 
-  unsigned long now = millis();
+  // Sensor-health watchdog. "Healthy" = the sensor answered cleanly, whether or
+  // not it saw a target; a wedge is an I2C error OR a status-0 reading that's
+  // physically impossible. Sustained faults trigger a re-init, then a reboot —
+  // so the node recovers on its own instead of needing a manual power-cycle.
+  bool sensorHealthy = (rangeErr == VL53L0X_ERROR_NONE) &&
+                       !(measure.RangeStatus == 0 && !plausible);
+  if (sensorHealthy) {
+    lastSensorOkAt = now;
+  } else if (lastSensorOkAt != 0) {
+    unsigned long faultFor = now - lastSensorOkAt;
+    if (faultFor >= SENSOR_REBOOT_AFTER_MS) {
+      Serial.println("[vl53l0x] wedged — rebooting to recover");
+      delay(50);
+      ESP.restart();
+    } else if (faultFor >= SENSOR_RECOVER_AFTER_MS &&
+               now - lastSensorRecoverAt >= SENSOR_RECOVER_EVERY_MS) {
+      recoverSensor();
+      lastSensorRecoverAt = now;
+    }
+  }
+
   updateBeep(now);
   processSample(distance, now);
 

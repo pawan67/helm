@@ -127,7 +127,12 @@ export class Detector {
 
       case "hanging": {
         if (d < t.repNearMm) {
-          // Crossed into the "top of rep" zone.
+          // Crossed into the "top of rep" zone. The body is closest here, so
+          // this is unambiguously "present" — cancel any pending release timer.
+          // Leaving it armed lets a stale, pre-rep absence timestamp later end
+          // the set before the rep it precedes, which on the device underflows
+          // the unsigned ms clock into a ~2^31 "best hang".
+          this.i.absentSince = null;
           this.finishHangSegment(now);
           this.i.state = "rep_up";
           this.i.repStart = now;
@@ -177,8 +182,12 @@ export class Detector {
 
   private finishHangSegment(now: number) {
     if (this.i.hangSegmentStart !== null) {
+      // Guard against a segment that ends before it began (a stale end
+      // timestamp). On the device this subtraction is unsigned and would wrap
+      // to a garbage ~2^31 duration; here it would go negative. Either way,
+      // only a real, positive span may become the best hang.
       const seg = now - this.i.hangSegmentStart;
-      if (seg > this.i.maxHangMs) this.i.maxHangMs = seg;
+      if (seg > 0 && seg > this.i.maxHangMs) this.i.maxHangMs = seg;
       this.i.hangSegmentStart = null;
     }
   }

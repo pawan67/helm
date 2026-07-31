@@ -225,6 +225,14 @@ async function handleEvent(deviceId: string, msg: EventMsg) {
   }
 
   if (msg.type === "session_end") {
+    // Defense in depth: clamp device-reported durations to a sane range before
+    // they touch the DB or personal records. A wedged sensor / timer glitch can
+    // emit a garbage span (historically a ~2^31ms "best hang" that overflowed
+    // the records), and the device is the untrusted edge here.
+    msg.durationMs = saneMs(msg.durationMs);
+    msg.hangMs = saneMs(msg.hangMs);
+    msg.maxHangMs = saneMs(msg.maxHangMs);
+
     // Backstop against phantom sessions from sensor glitches (e.g. sunlight
     // briefly reading as a close target): a "workout" with at most one rep and
     // no sustained hang is almost never real training, so drop it before it
@@ -369,6 +377,15 @@ async function handleEnv(deviceId: string, msg: EnvMsg) {
 /** Coerce to a finite number or null (rejects NaN / non-numeric payloads). */
 function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/** A day in ms — no real session (hang, duration) can exceed this. */
+const DAY_MS = 86_400_000;
+
+/** Clamp a device-reported duration to a sane, non-negative range. */
+function saneMs(v: number): number {
+  if (!Number.isFinite(v) || v < 0) return 0;
+  return v > DAY_MS ? DAY_MS : Math.round(v);
 }
 
 /**
