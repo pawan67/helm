@@ -82,7 +82,10 @@ export function DateRangePicker({
       size="sm"
     >
       <DatePicker.Control>
-        <DatePicker.Trigger asChild>
+        {/* `unstyled` drops Chakra's `trigger` slot recipe, which otherwise
+            forces this into a 24x24 fg.muted icon button (no border/padding) and
+            visually strips our labelled outline Button. Same for ClearTrigger. */}
+        <DatePicker.Trigger unstyled asChild>
           <Button
             variant="outline"
             size="sm"
@@ -95,7 +98,7 @@ export function DateRangePicker({
           </Button>
         </DatePicker.Trigger>
         {from || to ? (
-          <DatePicker.ClearTrigger asChild>
+          <DatePicker.ClearTrigger unstyled asChild>
             <IconButton
               aria-label="Clear date range"
               variant="ghost"
