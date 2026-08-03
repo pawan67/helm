@@ -59,6 +59,10 @@ function topics(deviceId: string) {
     irCmd: `pullup/${deviceId}/ir/cmd`,
     /** Device → server: confirmation that an IR frame was sent. */
     irAck: `pullup/${deviceId}/ir/ack`,
+    /** Server → device: toggle IR "learn" capture {on, ms?}. */
+    irLearn: `pullup/${deviceId}/ir/learn`,
+    /** Device → server: a decoded remote frame {protocol, code, bits}. */
+    irLearned: `pullup/${deviceId}/ir/learned`,
     /** Server → device: firmware push {url, version, md5, size}. */
     ota: `pullup/${deviceId}/ota`,
     /** Device → server: OTA progress {phase, percent, version, error}. */
@@ -100,6 +104,7 @@ type StatusMsg = {
 };
 type EnvMsg = { k?: string; tempC?: number; humidity?: number };
 type IrAckMsg = { k?: string; ok?: boolean; kind?: string };
+type IrLearnedMsg = { k?: string; protocol?: string; code?: string; bits?: number };
 type OtaStatusMsg = {
   k?: string;
   phase?: "start" | "progress" | "success" | "error";
@@ -132,7 +137,7 @@ export function startMqtt(): MqttClient {
 
   client.on("connect", async () => {
     console.log(`[mqtt] connected to ${env.mqttUrl}`);
-    const subs = [t.telemetry, t.event, t.status, t.env, t.irAck, t.otaStatus];
+    const subs = [t.telemetry, t.event, t.status, t.env, t.irAck, t.irLearned, t.otaStatus];
     if (env.haDiscoveryEnabled) subs.push(...HA_COMMAND_FILTERS);
     client.subscribe(subs, { qos: 1 }, (err) => {
       if (err) console.error("[mqtt] subscribe error:", err);
@@ -171,6 +176,7 @@ export function startMqtt(): MqttClient {
     else if (topic === t.status) handleStatus(payload as StatusMsg);
     else if (topic === t.env) void handleEnv(deviceId, payload as EnvMsg);
     else if (topic === t.irAck) handleIrAck(payload as IrAckMsg);
+    else if (topic === t.irLearned) handleIrLearned(payload as IrLearnedMsg);
     else if (topic === t.otaStatus) handleOtaStatus(payload as OtaStatusMsg);
   });
 
@@ -423,6 +429,30 @@ function handleIrAck(msg: IrAckMsg) {
   publishLive({ kind: "ir_ack", deviceId: null, ok: msg.ok !== false, at: Date.now() });
 }
 
+/** A remote frame captured during learn mode — relay it to the console so the
+ *  open button dialog can auto-fill protocol/code/bits. */
+function handleIrLearned(msg: IrLearnedMsg) {
+  if (!keyOk(msg.k)) return;
+  const protocol = typeof msg.protocol === "string" ? msg.protocol : "";
+  const code = typeof msg.code === "string" ? msg.code : "";
+  const bits = typeof msg.bits === "number" ? msg.bits : 0;
+  if (!protocol || !code || !bits) return; // ignore unknown/partial decodes
+  console.log(`[ir] learned ${protocol} 0x${code} (${bits}-bit)`);
+  publishLive({ kind: "ir_learned", protocol, code, bits, at: Date.now() });
+}
+
+/**
+ * Toggle IR "learn" capture on the bar node. `on` enables the receiver for `ms`
+ * (the device also auto-stops); decoded frames come back on `irLearned`.
+ */
+export function startIrLearn(on: boolean, ms = 20000): boolean {
+  const client = globalForMqtt.__mqttClient;
+  if (!client || !client.connected) return false;
+  const body = JSON.stringify({ k: env.deviceKey || undefined, on, ms });
+  client.publish(topics(env.deviceId).irLearn, body, { qos: 1, retain: false });
+  return true;
+}
+
 /** Publish one IR command to the device (QoS 1, not retained). */
 function publishIrCmd(payload: object): boolean {
   const client = globalForMqtt.__mqttClient;
@@ -616,6 +646,15 @@ export async function publishHaDiscovery(): Promise<void> {
         { qos: 1, retain: true },
       );
       publishClimateStateToHa(device.id, normalizeClimate(device.state, config));
+      // Any extra one-shot buttons attached to the AC (e.g. a captured "Light"
+      // toggle) become standalone HA buttons too — usable by voice.
+      for (const button of device.buttons) {
+        client.publish(
+          buttonConfigTopic(prefix, button.id),
+          JSON.stringify(buildButtonDiscovery(button.id, device.name, button.label)),
+          { qos: 1, retain: true },
+        );
+      }
     } else {
       // Promote Power + Speed N into one `fan`, and Boost/Sleep into its preset
       // modes; keep any other buttons (Timer, LED) as standalone buttons.

@@ -14,6 +14,7 @@ import type { IrClimateState } from "@/lib/ir-climate";
 type SessionEnd = Extract<LiveEvent, { kind: "session_end" }>;
 type RepEvent = Extract<LiveEvent, { kind: "rep" }>;
 type OtaProgress = Extract<LiveEvent, { kind: "ota_progress" }>;
+type IrLearned = Extract<LiveEvent, { kind: "ir_learned" }>;
 
 type LiveContextValue = {
   state: LiveState;
@@ -31,6 +32,8 @@ type LiveContextValue = {
   /** Latest OTA firmware-push progress from the device (null when idle). */
   ota: OtaProgress | null;
   clearOta: () => void;
+  /** Most recent IR frame captured in learn mode (null until one arrives). */
+  lastLearned: IrLearned | null;
 };
 
 const defaultState: LiveState = {
@@ -62,6 +65,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   const [irClimate, setIrClimate] = useState<Record<string, IrClimateState>>({});
   const [irAckTick, setIrAckTick] = useState(0);
   const [ota, setOta] = useState<OtaProgress | null>(null);
+  const [lastLearned, setLastLearned] = useState<IrLearned | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -148,6 +152,9 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         case "ir_ack":
           setIrAckTick((n) => n + 1);
           break;
+        case "ir_learned":
+          setLastLearned(ev);
+          break;
         default:
           break;
       }
@@ -172,6 +179,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         irAckTick,
         ota,
         clearOta: () => setOta(null),
+        lastLearned,
       }}
     >
       {children}

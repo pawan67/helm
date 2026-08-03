@@ -109,6 +109,8 @@ export function RemoteView({ initial }: { initial: DeviceWithButtons[] }) {
                 device={device}
                 editMode={editMode}
                 onEdit={() => setDeviceDialog({ open: true, device })}
+                onButtonSaved={(b) => onButtonSaved(device.id, b)}
+                onButtonDeleted={(id) => onButtonDeleted(device.id, id)}
               />
             ) : (
               <DeviceCard

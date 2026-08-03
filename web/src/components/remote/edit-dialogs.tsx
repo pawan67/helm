@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Dialog,
@@ -14,8 +14,9 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { Trash2, X } from "lucide-react";
+import { Radio, Trash2, X } from "lucide-react";
 import { toaster } from "@/components/ui/toaster";
+import { useLive } from "@/components/live-provider";
 import { PANASONIC_MODELS } from "@/lib/ir-climate";
 import { IR_ICON_KEYS, iconFor } from "./icons";
 import type { IrDevice, IrButton } from "./types";
@@ -286,6 +287,14 @@ export function ButtonDialog({
   const [repeats, setRepeats] = useState(0);
   const [busy, setBusy] = useState(false);
 
+  // IR learn: ask the bar node to capture the next remote frame and auto-fill
+  // the code fields. `lastLearned` is pushed over the live bus when the device
+  // decodes a press; we only accept captures newer than the moment we started.
+  const { lastLearned } = useLive();
+  const [listening, setListening] = useState(false);
+  const listenStartRef = useRef(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!open) return;
     setLabel(button?.label ?? "");
@@ -295,6 +304,80 @@ export function ButtonDialog({
     setBits(button?.bits ?? 32);
     setRepeats(button?.repeats ?? 0);
   }, [open, button]);
+
+  /** Tell the device to stop capturing and clear the local listening state. */
+  function stopLearn() {
+    setListening(false);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    void fetch("/api/remote/learn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ on: false }),
+    }).catch(() => {});
+  }
+
+  async function learn() {
+    if (listening) {
+      stopLearn();
+      return;
+    }
+    listenStartRef.current = Date.now();
+    setListening(true);
+    try {
+      const res = await fetch("/api/remote/learn", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ on: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Couldn't start learn mode");
+      }
+      // Give up a beat after the device's own ~20s window closes.
+      timeoutRef.current = setTimeout(() => {
+        setListening(false);
+        timeoutRef.current = null;
+        toaster.create({ title: "No IR signal captured — try again", type: "error" });
+      }, 21000);
+    } catch (err) {
+      setListening(false);
+      toaster.create({ title: (err as Error).message, type: "error" });
+    }
+  }
+
+  // Fill the fields when a fresh capture arrives while we're listening.
+  useEffect(() => {
+    if (!listening || !lastLearned) return;
+    if (lastLearned.at < listenStartRef.current) return; // stale (pre-start) capture
+    setProtocol(lastLearned.protocol);
+    setCode(lastLearned.code);
+    setBits(lastLearned.bits);
+    stopLearn();
+    toaster.create({
+      title: `Captured ${lastLearned.protocol} · 0x${lastLearned.code} (${lastLearned.bits}-bit)`,
+      type: "success",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastLearned, listening]);
+
+  // Stop any capture when the dialog closes.
+  useEffect(() => {
+    if (open) return;
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (listening) stopLearn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Show a captured protocol that isn't one of the built-in options.
+  const protocolOptions = BUTTON_PROTOCOLS.includes(protocol)
+    ? BUTTON_PROTOCOLS
+    : [protocol, ...BUTTON_PROTOCOLS];
 
   async function save() {
     if (!label.trim() || !code.trim()) {
@@ -372,12 +455,28 @@ export function ButtonDialog({
 
       <IconField value={icon} onChange={setIcon} />
 
+      <Field.Root>
+        <Field.Label>Capture from a remote</Field.Label>
+        <Button
+          w="full"
+          variant={listening ? "solid" : "outline"}
+          colorPalette={listening ? "lime" : "gray"}
+          onClick={learn}
+        >
+          <Radio size={16} />
+          {listening ? "Listening… press the remote (tap to cancel)" : "Learn from remote"}
+        </Button>
+        <Field.HelperText>
+          Point the remote at the bar node and press a button — protocol, code and bits fill in below.
+        </Field.HelperText>
+      </Field.Root>
+
       <HStack gap="3" align="start">
         <Field.Root>
           <Field.Label>Protocol</Field.Label>
           <NativeSelect.Root size="sm">
             <NativeSelect.Field value={protocol} onChange={(e) => setProtocol(e.currentTarget.value)}>
-              {BUTTON_PROTOCOLS.map((p) => (
+              {protocolOptions.map((p) => (
                 <option key={p} value={p}>
                   {p}
                 </option>

@@ -26,7 +26,8 @@ import {
   type IrClimateState,
 } from "@/lib/ir-climate";
 import { iconFor } from "./icons";
-import type { DeviceWithButtons } from "./types";
+import { ButtonDialog } from "./edit-dialogs";
+import type { DeviceWithButtons, IrButton } from "./types";
 
 const MODE_LABEL: Record<string, string> = {
   auto: "Auto",
@@ -114,14 +115,20 @@ export function ClimateCard({
   device,
   editMode,
   onEdit,
+  onButtonSaved,
+  onButtonDeleted,
 }: {
   device: DeviceWithButtons;
   editMode: boolean;
   onEdit: () => void;
+  onButtonSaved: (button: IrButton) => void;
+  onButtonDeleted: (id: string) => void;
 }) {
   const config = resolveClimateConfig(device.config);
   const { irClimate } = useLive();
   const [state, setState] = useState<IrClimateState>(() => normalizeClimate(device.state, config));
+  const [firing, setFiring] = useState<string | null>(null);
+  const [btnDialog, setBtnDialog] = useState<{ open: boolean; button?: IrButton }>({ open: false });
 
   // Reconcile with server-pushed state (another tab, or Home Assistant).
   const external = irClimate[device.id];
@@ -143,6 +150,27 @@ export function ClimateCard({
     } catch {
       setState(prev); // revert; the AC never got the command
       toaster.create({ title: "Couldn't reach the device", type: "error" });
+    }
+  }
+
+  // Fire an extra one-shot IR button attached to the AC (e.g. a captured
+  // "Light" toggle) — independent of the AC power state.
+  async function fire(button: IrButton) {
+    setFiring(button.id);
+    try {
+      const res = await fetch("/api/remote/fire", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ buttonId: button.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Send failed");
+      }
+    } catch (err) {
+      toaster.create({ title: (err as Error).message, type: "error" });
+    } finally {
+      setTimeout(() => setFiring((f) => (f === button.id ? null : f)), 350);
     }
   }
 
@@ -267,6 +295,51 @@ export function ClimateCard({
           onSelect={(v) => send({ preset: v as IrClimateState["preset"] })}
         />
 
+        {/* Extra one-shot IR buttons (e.g. a learned "Light" toggle). Always
+            enabled — the display light works regardless of AC power state. */}
+        {device.buttons.length > 0 || editMode ? (
+          <Stack gap="1.5">
+            <Eyebrow>Buttons</Eyebrow>
+            <Wrap gap="1.5">
+              {device.buttons.map((b) => {
+                const BtnIcon = iconFor(b.icon);
+                const isFiring = firing === b.id;
+                return (
+                  <Button
+                    key={b.id}
+                    size="sm"
+                    minW="12"
+                    minH="11"
+                    variant="outline"
+                    colorPalette={isFiring ? "lime" : "gray"}
+                    color={isFiring ? "lime.fg" : "fg.muted"}
+                    borderColor={isFiring ? "lime.solid" : "border.subtle"}
+                    onClick={() => (editMode ? setBtnDialog({ open: true, button: b }) : fire(b))}
+                  >
+                    <BtnIcon size={15} />
+                    {b.label}
+                    {editMode ? <Pencil size={11} /> : null}
+                  </Button>
+                );
+              })}
+              {editMode ? (
+                <Button
+                  size="sm"
+                  minW="12"
+                  minH="11"
+                  variant="outline"
+                  borderStyle="dashed"
+                  colorPalette="gray"
+                  color="fg.subtle"
+                  onClick={() => setBtnDialog({ open: true, button: undefined })}
+                >
+                  <Plus size={15} /> Add
+                </Button>
+              ) : null}
+            </Wrap>
+          </Stack>
+        ) : null}
+
         <HStack gap="2" color="fg.subtle">
           <Box boxSize="1.5" rounded="full" bg="fg.subtle" />
           <Metric fontSize="10px">
@@ -274,6 +347,15 @@ export function ClimateCard({
           </Metric>
         </HStack>
       </Card.Body>
+
+      <ButtonDialog
+        open={btnDialog.open}
+        onOpenChange={(open) => setBtnDialog((d) => ({ ...d, open }))}
+        deviceId={device.id}
+        button={btnDialog.button}
+        onSaved={onButtonSaved}
+        onDeleted={onButtonDeleted}
+      />
     </Card.Root>
   );
 }

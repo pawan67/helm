@@ -72,6 +72,8 @@ export type LiveEvent =
   | { kind: "ir_state"; deviceId: string; state: IrClimateState; at: number }
   /** The device confirmed it transmitted an IR command. */
   | { kind: "ir_ack"; deviceId: string | null; ok: boolean; at: number }
+  /** A remote frame was captured in learn mode (auto-fills a button). */
+  | { kind: "ir_learned"; protocol: string; code: string; bits: number; at: number }
   | { kind: "heartbeat" };
 
 export const RECORD_LABELS: Record<string, string> = {

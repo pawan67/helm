@@ -22,6 +22,10 @@
  *   DHT11    VCC -> 3V3 | GND -> GND | DATA -> GPIO25 (10k pull-up DATA->3V3
  *            if using a bare sensor; most modules have it onboard)
  *   Buzzer   passive piezo: + -> GPIO26 | - -> GND
+ *   IR TX    GPIO27 -> 220Ω -> 2N2222 base; IR LED string on the collector
+ *   IR RX    38kHz demod (TSOP38238 / VS1838B): OUT -> GPIO14 | VCC -> 3V3 |
+ *            GND -> GND. Optional — only used for the console's "learn" mode
+ *            to capture a remote's codes; leave unpopulated if not learning.
  *
  * Copy config.example.h -> config.h and fill in your WiFi / MQTT details.
  */
@@ -34,6 +38,7 @@
 #include <DHT.h>
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
+#include <IRrecv.h>
 #include <IRutils.h>
 #include <ir_Panasonic.h>
 #include <HTTPClient.h>
@@ -41,7 +46,7 @@
 #include <Update.h>
 #include "config.h"
 
-#define FW_VERSION "1.6.0"  // sensor-health watchdog + hang-timer underflow fix
+#define FW_VERSION "1.7.0"  // IR receiver + MQTT-driven "learn" mode
 
 // A rep-free session whose longest continuous hang is shorter than this is
 // treated as a sensor glitch, not a workout, and is discarded (no session_end
@@ -62,6 +67,20 @@ const unsigned long ENV_INTERVAL_MS = 60000;  // DHT11 maxes ~1Hz; sample once a
 #define IR_LED_PIN 27
 IRsend irsend(IR_LED_PIN);            // generic protocols (NEC, etc.)
 IRPanasonicAc panasonicAc(IR_LED_PIN);  // Panasonic AC state frames
+
+// ---- IR receiver (learn mode) ----
+// A 38kHz IR demodulator (TSOP38238 / VS1838B) on GPIO14. Only ENABLED during a
+// user-initiated "learn" window pushed from the console — its timer/GPIO ISR is
+// left off the rest of the time so it never perturbs rep-detection timing. Every
+// frame decoded while learning is published back so the console can auto-fill a
+// button's protocol/code/bits.
+#define IR_RECV_PIN 14
+const uint16_t IR_CAPTURE_BUF = 1024;  // large enough to hold long AC frames
+const uint8_t IR_CAPTURE_TIMEOUT = 50; // ms of idle that ends one message
+IRrecv irrecv(IR_RECV_PIN, IR_CAPTURE_BUF, IR_CAPTURE_TIMEOUT, true);
+decode_results irResults;
+bool learnActive = false;         // receiver enabled + publishing captures
+unsigned long learnUntil = 0;     // auto-stop deadline (millis)
 
 // A tiny FIFO of pending IR command JSON strings. Commands are transmitted only
 // while IDLE so an IR frame (a Panasonic frame is ~130-200ms) never stalls rep
@@ -158,6 +177,9 @@ unsigned long lastSensorOkAt = 0;       // last healthy reading (target or not)
 unsigned long lastSensorRecoverAt = 0;
 
 String topicTelemetry, topicEvent, topicStatus, topicConfig, topicEnv, topicIrCmd, topicIrAck;
+// IR learn: server toggles capture on topicIrLearn; device streams decoded
+// frames back on topicIrLearned so the console can auto-fill a button.
+String topicIrLearn, topicIrLearned;
 // OTA: server publishes a firmware push on topicOta; we stream progress back on
 // topicOtaStatus and reboot into the new image on success.
 String topicOta, topicOtaStatus;
@@ -390,6 +412,22 @@ void publishIrAck(const char* kind) {
   char buf[96];
   size_t n = serializeJson(doc, buf, sizeof(buf));
   mqtt.publish(topicIrAck.c_str(), (const uint8_t*)buf, n, false);
+}
+
+// Publish one captured frame back to the console so it can fill in a button.
+// protocol is the canonical IRremoteESP8266 name (round-trips through
+// strToDecodeType when the button is later transmitted); code is upper-hex.
+void publishIrLearned(const decode_results* r) {
+  JsonDocument doc;
+  doc["k"] = DEVICE_KEY;
+  doc["protocol"] = typeToString(r->decode_type, false);
+  char code[20];
+  snprintf(code, sizeof(code), "%llX", (unsigned long long)r->value);
+  doc["code"] = code;
+  doc["bits"] = r->bits;
+  char buf[128];
+  size_t n = serializeJson(doc, buf, sizeof(buf));
+  mqtt.publish(topicIrLearned.c_str(), (const uint8_t*)buf, n, false);
 }
 
 panasonic_ac_remote_model_t panasonicModel(const char* m) {
@@ -659,6 +697,25 @@ void onMessage(char* topic, byte* payload, unsigned int len) {
     enqueueIr(String(buf));
     return;
   }
+  // IR learn on/off: {on:bool, ms?:number}. Enabling turns the receiver's ISR
+  // on for `ms` (default 20s); the loop then streams every decoded frame back.
+  if (String(topic) == topicIrLearn) {
+    JsonDocument doc;
+    if (deserializeJson(doc, payload, len)) return;
+    bool on = doc["on"] | false;
+    if (on) {
+      unsigned long ms = doc["ms"] | 20000UL;
+      irrecv.enableIRIn();
+      learnActive = true;
+      learnUntil = millis() + ms;
+      Serial.printf("[ir] learn ON for %lums\n", ms);
+    } else {
+      irrecv.disableIRIn();
+      learnActive = false;
+      Serial.println("[ir] learn OFF");
+    }
+    return;
+  }
   if (String(topic) != topicConfig) return;
   JsonDocument doc;
   if (deserializeJson(doc, payload, len)) return;
@@ -824,6 +881,8 @@ void setupTopics() {
   topicEnv = base + "env";
   topicIrCmd = base + "ir/cmd";
   topicIrAck = base + "ir/ack";
+  topicIrLearn = base + "ir/learn";
+  topicIrLearned = base + "ir/learned";
   topicOta = base + "ota";
   topicOtaStatus = base + "ota/status";
 }
@@ -853,6 +912,7 @@ void connectMqtt() {
       Serial.println(" connected");
       mqtt.subscribe(topicConfig.c_str(), 1);
       mqtt.subscribe(topicIrCmd.c_str(), 1);
+      mqtt.subscribe(topicIrLearn.c_str(), 1);
       mqtt.subscribe(topicOta.c_str(), 1);
       publishStatus(true);
       lastStatusPub = millis();
@@ -894,6 +954,9 @@ void setup() {
   irsend.begin();
   panasonicAc.begin();
   Serial.println("[ir] blaster ready on GPIO27");
+  // Receiver stays OFF until the console starts a learn session (keeps its ISR
+  // from perturbing detection); enableIRIn() runs on demand in onMessage().
+  Serial.println("[ir] receiver on GPIO14 (idle until learn)");
 
   setupTopics();
   connectWifi();
@@ -979,6 +1042,25 @@ void loop() {
   if (irQCount > 0) {
     String cmd;
     if (dequeueIr(cmd)) sendIrCmd(cmd);
+  }
+
+  // IR learn: while active, publish every decoded frame so the console can
+  // auto-fill a button. Skip unknown/repeat noise. Auto-stops on timeout so a
+  // forgotten session never leaves the receiver ISR running.
+  if (learnActive) {
+    if ((long)(millis() - learnUntil) >= 0) {
+      irrecv.disableIRIn();
+      learnActive = false;
+      Serial.println("[ir] learn timeout");
+    } else if (irrecv.decode(&irResults)) {
+      if (irResults.decode_type != decode_type_t::UNKNOWN &&
+          irResults.bits > 0 && !irResults.repeat) {
+        publishIrLearned(&irResults);
+        Serial.printf("[ir] learned %s bits=%d\n",
+                      typeToString(irResults.decode_type).c_str(), irResults.bits);
+      }
+      irrecv.resume();
+    }
   }
 
   // Stream raw telemetry (throttled, or immediately on state/large change).
