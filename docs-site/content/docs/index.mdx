@@ -1,0 +1,46 @@
+---
+title: Overview
+description: What HELM is, how the pieces fit together, and where to start.
+icon: House
+---
+
+HELM is a self-hosted console for the physical systems under your own roof. One
+operator, one server, no cloud account. Sensors report to it and devices take
+orders from it, all over MQTT, all yours.
+
+Today it runs the **bar node**: an **ESP32** with a **VL53L0X** time-of-flight
+sensor that counts pull-up reps and dead-hang time, a **DHT11** that reports room
+temperature and humidity, a **buzzer**, and an optional **IR blaster** that
+controls an AC, fan, or TV. Everything streams live to a **Next.js** console you
+can open from anywhere.
+
+## How it fits together
+
+```text
+ESP32 bar node   ──MQTT──▶  Mosquitto  ──sub──▶  Next.js server  ──SSE──▶  Browser
+ VL53L0X (reps)             (broker)             (persists +               (live UI)
+ DHT11 (climate)                                  relays)  ──▶  Postgres
+ buzzer + IR blaster        ◀──────────  commands / config / OTA  ◀──────
+```
+
+The ESP32 runs the detection state machine locally **and** streams raw distance,
+temperature, and humidity. The Next.js server subscribes to MQTT, persists
+finished sessions and climate readings to Postgres, and relays live data to the
+browser over Server-Sent Events. Control flows back down the same path: threshold
+changes, buzzer toggles, IR commands, and OTA firmware pushes are published to the
+device over MQTT — no reflashing.
+
+## What you'll build
+
+<Cards>
+  <Card title="Hardware" href="/docs/hardware" description="Parts, the ESP32 pin map, and a pin-by-pin wiring guide." />
+  <Card title="Firmware" href="/docs/firmware" description="Flash the sketch, calibrate the sensor, and update over the air." />
+  <Card title="Web console" href="/docs/console" description="Run it locally and deploy it with Docker on Dokploy." />
+  <Card title="Integrations" href="/docs/integrations" description="Voice-control the AC and fan via Home Assistant + Google." />
+</Cards>
+
+## New here?
+
+Start with **[Getting started](/docs/getting-started)** for the end-to-end path,
+then jump into the section you need. If you just want the wiring, the fastest
+route is **[Hardware → Pin mapping](/docs/hardware/pin-mapping)**.

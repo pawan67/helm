@@ -50,6 +50,15 @@ services:
       # Dokploy points your domain at this port.
       - "3000:3000"
 
+  docs:
+    # Fumadocs documentation site — static, self-contained, no env/DB/MQTT.
+    build:
+      context: ./docs-site
+    restart: unless-stopped
+    ports:
+      # http://localhost:3001 (web already uses host port 3000).
+      - "3001:3000"
+
 volumes:
   db_data:
   mqtt_data:

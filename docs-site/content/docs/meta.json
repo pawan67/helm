@@ -1,0 +1,16 @@
+{
+  "title": "HELM",
+  "root": true,
+  "pages": [
+    "index",
+    "getting-started",
+    "---Build---",
+    "hardware",
+    "firmware",
+    "---Software---",
+    "console",
+    "integrations",
+    "---Reference---",
+    "reference"
+  ]
+}

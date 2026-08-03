@@ -1,0 +1,88 @@
+---
+title: Deployment
+description: Ship the console with Docker Compose on Dokploy.
+icon: Ship
+---
+
+The console deploys as a Docker Compose stack (`web` + Postgres + Mosquitto),
+built for [Dokploy](https://dokploy.com). The `web` container runs database
+migrations automatically on every start, so a redeploy is all it takes to apply
+schema changes.
+
+<Steps>
+
+<Step>
+
+### Point your domain
+
+Add an A record for your domain pointing at your Dokploy host's IP.
+
+</Step>
+
+<Step>
+
+### Create the MQTT password file
+
+So the broker isn't open to the world, create two users — `server` (the web app)
+and `device` (the ESP32):
+
+```bash
+# from the repo root
+docker run --rm -v "$PWD/mosquitto:/m" eclipse-mosquitto:2 \
+  sh -c "mosquitto_passwd -b -c /m/passwd server 'YOUR_SERVER_PASS' && \
+         mosquitto_passwd -b /m/passwd device 'YOUR_DEVICE_PASS'"
+```
+
+This writes `mosquitto/passwd` with both users.
+
+</Step>
+
+<Step>
+
+### Create the Dokploy Compose app
+
+In Dokploy, create a **Compose** app pointing at this repo. Set the environment
+variables from `.env.example` — see [Configuration](/docs/console/configuration)
+for what each one does:
+
+- `POSTGRES_PASSWORD`, `APP_PASSWORD`
+- `SESSION_SECRET` — generate with `openssl rand -hex 32`
+- `MQTT_SERVER_USER` / `MQTT_SERVER_PASS` — must match the `server` user above
+- `DEVICE_ID`, `DEVICE_KEY`, `APP_TIMEZONE`
+
+</Step>
+
+<Step>
+
+### Deploy
+
+The `web` container runs migrations, then starts. Map your domain to the `web`
+service (**port 3000**) in Dokploy, and make sure **port 1883** (Mosquitto) is
+reachable from wherever your ESP32 lives.
+
+</Step>
+
+<Step>
+
+### Log in
+
+Open your domain and sign in with `APP_PASSWORD`.
+
+</Step>
+
+</Steps>
+
+<Callout type="info" title="Migrations are automatic">
+`scripts/migrate-runner.mjs` runs before the server boots on every start, so you
+never run migrations by hand in production — just redeploy.
+</Callout>
+
+## Live deployment
+
+This project runs at:
+
+- **Console** — `helm.pawan67.dev`
+- **Home Assistant** — `home.pawan67.dev`
+
+Both are public over HTTPS on Dokploy. The public HTTPS host for HA is a
+prerequisite for the [Google Home integration](/docs/integrations/google-home).

@@ -1,0 +1,5 @@
+{
+  "title": "Web console",
+  "icon": "LayoutDashboard",
+  "pages": ["index", "local-development", "deployment", "configuration"]
+}

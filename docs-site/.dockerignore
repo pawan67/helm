@@ -1,0 +1,9 @@
+node_modules
+.next
+.source
+.git
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+Dockerfile
+.dockerignore

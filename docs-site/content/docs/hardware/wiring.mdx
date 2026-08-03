@@ -1,0 +1,127 @@
+---
+title: Wiring guide
+description: Connect each part to the ESP32, one at a time, with polarity notes.
+icon: PlugZap
+---
+
+Build and test **one component at a time**. A suggested convention: **red
+jumper = +/power**, **black jumper = − / GND**. Do each part, then move on.
+
+<Callout type="warn">
+Unplug USB while you wire. Only power on after you've checked the connection
+against the [pin mapping](/docs/hardware/pin-mapping).
+</Callout>
+
+## VL53L0X (distance sensor) — required [#vl53l0x]
+
+No tricky polarity; just match four pins. It's an I²C device.
+
+| VL53L0X pin | → ESP32 |
+|-------------|---------|
+| `VIN` (or `VCC`) = **+** | `3V3` |
+| `GND` = **−** | `GND` |
+| `SDA` | `GPIO21` |
+| `SCL` | `GPIO22` |
+
+Mount it **10 cm above the bar**, centered, lens pointing **outward toward your
+body** so your head enters the beam as you pull up.
+
+## DHT11 (temp/humidity) — required [#dht11]
+
+Two kinds exist — check which one you have.
+
+<Tabs items={["3-pin module", "Bare 4-pin sensor"]}>
+
+<Tab value="3-pin module">
+
+A small blue/black board with silkscreen labels. Match **by the label**, because
+the pin order differs between brands:
+
+- `+` / `VCC` → `3V3`
+- `OUT` / `S` / `DATA` → `GPIO25`
+- `−` / `GND` → `GND`
+
+A module already has the pull-up resistor built in — you don't add one.
+
+</Tab>
+
+<Tab value="Bare 4-pin sensor">
+
+Blue plastic, metal grille, 4 legs. Hold it with the **grille facing you**, legs
+down. Left → right = **1, 2, 3, 4**:
+
+- Pin 1 = **VCC (+)** → `3V3`
+- Pin 2 = **DATA** → `GPIO25`
+- Pin 3 = not connected (skip)
+- Pin 4 = **GND (−)** → `GND`
+
+Add a **10 kΩ resistor between Pin 1 and Pin 2** (the pull-up). Resistors have no
+`+`/`−`, so orientation doesn't matter.
+
+```text
+ Bare DHT11 pull-up:
+   3V3 ──┬───────── Pin 1 (VCC)
+         │
+       [10kΩ]
+         │
+ GPIO25 ─┴───────── Pin 2 (DATA)
+   GND ──────────── Pin 4 (GND)
+```
+
+</Tab>
+
+</Tabs>
+
+## Passive buzzer — required
+
+The buzzer **is polarized** on most modules. Look for a **`+`** printed on top,
+or the **longer leg = `+`**.
+
+| Buzzer pin | → ESP32 |
+|------------|---------|
+| **+** (long leg / `+` mark) | `GPIO26` |
+| **−** (short leg) | `GND` |
+
+If yours is a bare 2-pin piezo disc with no `+`, it isn't polarized — either leg
+works.
+
+## IR blaster — optional
+
+The IR blaster has real polarity and needs a transistor. It's covered on its own
+page so you can skip it entirely if you don't want AC/fan/TV control.
+
+<Cards>
+  <Card title="IR blaster wiring" href="/docs/hardware/ir-blaster" description="Transistor driver, IR LED, and capacitor — with polarity notes." />
+</Cards>
+
+## First power-on checklist
+
+<Steps>
+
+<Step>
+Re-check every `+` and `GND` against the [pin mapping](/docs/hardware/pin-mapping)
+**before** plugging in USB.
+</Step>
+
+<Step>
+Plug in USB and open the Arduino **Serial Monitor at 115200 baud**.
+</Step>
+
+<Step>
+You should see `HELM bar-node firmware …` then `[vl53l0x] ready`. If you see
+`[vl53l0x] NOT FOUND — check wiring!`, recheck SDA=21, SCL=22, VIN=3V3, GND.
+</Step>
+
+<Step>
+Wave your hand in front of the sensor — the live distance should change.
+</Step>
+
+<Step>
+Finish flashing `config.h` (see [Firmware → Flashing](/docs/firmware/flashing))
+so it joins WiFi + MQTT.
+</Step>
+
+</Steps>
+
+That's sensor, climate, and buzzer working. The IR blaster is a bonus you can add
+later.

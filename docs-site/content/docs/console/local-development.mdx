@@ -1,0 +1,72 @@
+---
+title: Local development
+description: Run Postgres, Mosquitto, and the Next.js app on your machine.
+icon: Terminal
+---
+
+**Prerequisites:** Node 22, pnpm, and Docker.
+
+## 1. Start Postgres + Mosquitto
+
+Use your own, or spin up throwaway containers:
+
+```bash
+docker run -d --name pt-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=pullups \
+  -p 5432:5432 postgres:16-alpine
+
+docker run -d --name pt-mqtt -p 1883:1883 \
+  -v "$PWD/mosquitto/dev.conf:/mosquitto/config/mosquitto.conf" eclipse-mosquitto:2
+```
+
+<Callout type="info">
+For local Mosquitto without auth, a minimal `mosquitto/dev.conf` is just:
+`listener 1883` + `allow_anonymous true`.
+</Callout>
+
+## 2. Configure + install
+
+```bash
+cd web
+cp .env.example .env        # then edit values — see Configuration
+pnpm install
+```
+
+## 3. Migrate + run
+
+```bash
+pnpm db:migrate
+pnpm dev                    # http://localhost:3000
+```
+
+Log in with the `APP_PASSWORD` you set in `.env`.
+
+## No hardware? Mock the device [#no-hardware-mock-the-device]
+
+A simulator publishes the same MQTT messages a real bar node would, so you can
+build and demo the whole app without any electronics:
+
+```bash
+pnpm mock-device reps 10    # a 10-rep set
+pnpm mock-device hang 30    # a 30-second dead hang
+pnpm mock-device env 20     # 20 climate readings
+pnpm mock-device loop       # random sessions forever
+pnpm seed-env 30            # backfill 30 days of climate history for charts
+```
+
+<Callout type="info">
+Or run the whole stack (db + broker + migrations + dev server) with `./dev.sh` —
+add `--mock` to stream a simulated device alongside it.
+</Callout>
+
+## Tests and checks
+
+```bash
+pnpm test         # detection state machine, streaks, env bucketing
+pnpm typecheck
+pnpm build
+```
+
+<Callout type="info">
+The detection tests double as firmware tests — `web/src/lib/detection.ts` is the
+reference implementation the ESP32 sketch mirrors.
+</Callout>

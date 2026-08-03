@@ -1,0 +1,67 @@
+---
+title: IR blaster (optional)
+description: The transistor-driven IR LED that controls your AC, fan, or TV.
+icon: Radio
+---
+
+The IR blaster lets HELM control an AC, fan, or TV over infrared. It's entirely
+optional — the tracker works fine without it. Skip this whole page if you don't
+want IR control.
+
+<Callout type="warn">
+This part has **real polarity** on three components (IR LED, transistor, and the
+electrolytic capacitor). An electrolytic cap can pop if reversed — double-check
+before powering on.
+</Callout>
+
+## Why a transistor?
+
+The ESP32 can't drive a bright IR LED string directly, so a **2N2222 transistor**
+switches the LED from the 5 V rail while the ESP32 just toggles the base.
+
+```text
+  ESP32 GPIO27 ──[220Ω]──► B (base)
+                            │
+             5V ──► IR LED ──[47Ω]──► C (collector)
+                  (anode +) (cathode −)      │
+                                    E (emitter) ──► GND
+
+  470µF capacitor across the 5V supply:  +leg → 5V,  −leg(stripe) → GND
+```
+
+## Polarity, part by part
+
+- **IR LED** — **long leg = anode (+)** → toward `5V`. Short leg / **flat side of
+  the rim = cathode (−)** → toward the 47 Ω resistor and the collector.
+- **2N2222 transistor** (TO-92, flat face toward you, legs down) — the most common
+  order is **E – B – C** (left → right): left leg = Emitter → `GND`, middle = Base
+  → 220 Ω → `GPIO27`, right = Collector → the IR LED side.
+
+  <Callout type="warn">
+  Pinouts vary by brand. Confirm E–B–C against your transistor's datasheet or
+  marking before wiring.
+  </Callout>
+
+- **470 µF capacitor** — **longer leg = `+`** → `5V`. The side with the **stripe /
+  minus marks = `−`** → `GND`. It buffers the burst current when the LED pulses.
+
+## Sizing the LED resistor
+
+Put the IR LEDs on the **`5V`** rail (not `3V3`) for range. Size the current-limit
+resistor for your LED count — roughly **22–47 Ω** for one or two LEDs at 5 V. A
+single 470 µF cap across the supply smooths the burst draw.
+
+Point the IR LEDs at the AC / fan / TV you want to control — it needs
+line-of-sight.
+
+## What the firmware does with it
+
+Once wired and configured, the firmware subscribes to an IR command topic and
+transmits either a Panasonic AC state frame or a generic protocol code (NEC, etc.).
+Devices and buttons are managed entirely in the web console's **Remote** page —
+nothing is hard-coded in firmware. See:
+
+<Cards>
+  <Card title="MQTT topics → IR" href="/docs/reference/mqtt-topics#ir" description="The ir/cmd and ir/ack topics and payload shapes." />
+  <Card title="Voice control" href="/docs/integrations" description="Drive the IR AC & fan by voice via Home Assistant + Google." />
+</Cards>

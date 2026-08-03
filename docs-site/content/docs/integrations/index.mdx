@@ -1,0 +1,45 @@
+---
+title: Voice control overview
+description: How HELM's IR AC and fan become voice-controllable, for free.
+icon: Mic
+---
+
+The goal: say *"Hey Google, turn on the AC"* or *"set the fan to speed 3"* and
+have it reach the [IR blaster](/docs/hardware/ir-blaster) — **without paying for
+Nabu Casa Cloud**.
+
+## How the pieces connect
+
+```text
+Google Assistant ──▶ Home Assistant (home.pawan67.dev) ──▶ MQTT ──▶ HELM ──▶ ESP32 IR blaster
+     (voice)          google_assistant: integration        discovery      applyClimate / fireIrButton
+```
+
+HELM already publishes the AC as a `climate` entity and the fan as a `fan` entity
+to Home Assistant over MQTT discovery. So there are only two things to wire up:
+
+<Cards>
+  <Card title="Google Home" href="/docs/integrations/google-home" description="Link Home Assistant to Google via the free Cloud-to-cloud integration." />
+  <Card title="Home Assistant" href="/docs/integrations/home-assistant" description="The google_assistant: config block and which entities to expose." />
+</Cards>
+
+## Prerequisites
+
+- Home Assistant reachable over **public HTTPS** (this deploy uses
+  `https://home.pawan67.dev/`).
+- A Google account (the one on your phone).
+- The AC + fan visible in HA under **Settings → Devices → HELM Bar Node**.
+- The [IR blaster](/docs/hardware/ir-blaster) wired, if you want it to actually
+  do something physical.
+
+<Callout type="info" title="Free vs. Nabu Casa">
+Nabu Casa Cloud does this in one click for ~$6.50/mo. The
+[Google Home guide](/docs/integrations/google-home) does the same thing for free,
+at the cost of ~30–45 min of Google Cloud console setup — a one-time thing.
+</Callout>
+
+## Want something working today?
+
+While you set up Google, HELM's own **Shortcuts** give you instant voice control
+with no accounts and no subscription — see
+[Voice shortcuts](/docs/integrations/voice-shortcuts).

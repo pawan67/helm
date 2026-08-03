@@ -1,0 +1,63 @@
+---
+title: Voice shortcuts (instant)
+description: Instant voice control with no Google setup, using HELM Shortcuts + Bixby.
+icon: Zap
+---
+
+If you want voice control working *today* — while you do the
+[Google Home setup](/docs/integrations/google-home), or instead of it — HELM's
+built-in **Shortcuts** are the fastest path. No accounts, no subscription.
+
+## How it works
+
+HELM can expose an action behind a public link like
+`https://helm.pawan67.dev/a/<key>`. Opening that link fires the action (turn the
+AC on, set fan speed 3, etc.). Any voice assistant that can open a URL can
+therefore trigger it — including Bixby.
+
+<Steps>
+
+<Step>
+
+### Create the shortcuts in HELM
+
+In the console go to **Home → Shortcuts** and create the actions you want:
+"AC on", "Fan speed 3", and so on. Each gets its own public link.
+
+</Step>
+
+<Step>
+
+### Map them to Bixby Quick Commands
+
+On your phone, create a **Bixby Quick Command** for each one — e.g. the phrase
+*"AC on"* → **Open** `https://helm.pawan67.dev/a/<key>`.
+
+</Step>
+
+<Step>
+
+### Say the phrase
+
+Trigger Bixby and say your command. Bixby opens the link, HELM fires the IR, done.
+
+</Step>
+
+</Steps>
+
+<Callout type="info">
+The links are public, so they work on cellular too — you don't need to be on your
+home WiFi. Treat the `<key>` as a secret: anyone with the link can fire the action.
+</Callout>
+
+## Shortcuts vs. Google Home
+
+| | Shortcuts + Bixby | [Google Home](/docs/integrations/google-home) |
+|---|---|---|
+| Setup time | Minutes | ~30–45 min (one-time) |
+| Accounts / cost | None | Google account, free |
+| Natural phrasing | Fixed per-shortcut phrase | Natural ("set the AC to 24") |
+| State feedback | One-way (fire and forget) | Two-way with `report_state` |
+
+Use Shortcuts to get going immediately; graduate to Google Home when you want
+natural phrasing and state sync.

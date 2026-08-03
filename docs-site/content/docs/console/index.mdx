@@ -1,0 +1,57 @@
+---
+title: The console
+description: What the Next.js web app does and how it's built.
+icon: LayoutDashboard
+---
+
+The console is a **Next.js 16** app (App Router, TypeScript, Chakra UI v3,
+Drizzle + Postgres). It's single-user and password-protected. It subscribes to
+MQTT, persists sessions and climate readings, and relays live data to the browser
+over Server-Sent Events.
+
+## What it gives you
+
+<Cards>
+  <Card title="Live workout screen" description="Real-time rep counter, on-bar timer, and a distance gauge showing the sensor beam, over SSE." />
+  <Card title="History & charts" description="Reps/day and hang-time/day over 7/30/90-day windows; edit or delete any session." />
+  <Card title="Climate" description="Room temperature and humidity with 7-day (hourly) and 30-day (daily) trends." />
+  <Card title="Personal records" description="Most reps in a set / in a day, longest dead hang, with an on-the-bar celebration." />
+  <Card title="Streaks & goals" description="Daily/weekly rep goals and streak tracking." />
+  <Card title="Buzzer & live tuning" description="Chirp toggles and detection thresholds that push to the device instantly over MQTT." />
+  <Card title="Device health & OTA" description="Live signal, uptime, free memory and IP — plus over-the-air firmware pushes." />
+  <Card title="Remote" description="Manage IR devices and buttons for the AC / fan / TV. Nothing is hard-coded in firmware." />
+</Cards>
+
+## Architecture
+
+```text
+ESP32 bar node   ──MQTT──▶  Mosquitto  ──sub──▶  Next.js server  ──SSE──▶  Browser
+ VL53L0X (reps)             (broker)             (persists +               (live UI)
+ DHT11 (climate)                                  relays)  ──▶  Postgres
+ buzzer + IR                ◀──────────  config / IR / OTA  ◀──────────────
+```
+
+The server subscribes to MQTT, persists finished sessions and climate readings to
+Postgres, and relays live data to the browser over Server-Sent Events. Control
+flows back down over MQTT.
+
+## Repository layout
+
+```text
+web/                 Next.js 16 app (App Router, TS, Chakra UI v3, Drizzle)
+  src/app/           pages + API routes
+  src/lib/           detection, mqtt, live bus, auth, streaks, env series
+  src/db/            schema, queries, persistence, migration runner
+  scripts/           mock-device.ts (no-hardware simulator), seed-env.mjs
+firmware/helm/       ESP32 Arduino sketch + config template + wiring guide
+mosquitto/           broker config
+docker-compose.yml   web + Postgres + Mosquitto
+```
+
+## Next
+
+<Cards>
+  <Card title="Local development" href="/docs/console/local-development" description="Run the whole stack on your machine, with or without hardware." />
+  <Card title="Deployment" href="/docs/console/deployment" description="Ship it with Docker Compose on Dokploy." />
+  <Card title="Configuration" href="/docs/console/configuration" description="Every environment variable, explained." />
+</Cards>

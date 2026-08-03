@@ -1,0 +1,98 @@
+---
+title: Pin mapping
+description: The complete ESP32 pin map — the single source of truth for wiring.
+icon: Grid3x3
+---
+
+This is the authoritative pin map. Everything else (the wiring guide, the
+firmware) is written against exactly these pins. If you change a pin here, change
+it in `firmware/helm/helm.ino` too.
+
+## ESP32 pins you'll use
+
+Find these labels printed on the board (both sides are labeled):
+
+| Label on board | Meaning | Use it for |
+|----------------|---------|------------|
+| `3V3` | 3.3 V **power out (+)** | VL53L0X, DHT11 power |
+| `5V` or `VIN` | 5 V **power out (+)** | IR LEDs (optional) |
+| `GND` | Ground **(−)** | every part's `−` |
+| `GPIO21` | I²C data (SDA) | VL53L0X SDA |
+| `GPIO22` | I²C clock (SCL) | VL53L0X SCL |
+| `GPIO25` | Digital | DHT11 DATA |
+| `GPIO26` | Digital | Buzzer `+` |
+| `GPIO27` | Digital | IR driver (optional) |
+
+There are **several `GND` pins** — any of them work. Treat `3V3` as your `+` rail
+for the sensors and `GND` as your `−` rail.
+
+## Full pin map
+
+Double-check every connection against this table before powering on.
+
+| ESP32 pin | Connects to |
+|-----------|-------------|
+| `3V3` | VL53L0X VIN, DHT11 VCC |
+| `5V` / `VIN` | IR LED supply, 470 µF `+` (optional) |
+| `GND` | VL53L0X GND, DHT11 GND, buzzer `−`, transistor emitter, cap `−` |
+| `GPIO21` | VL53L0X SDA |
+| `GPIO22` | VL53L0X SCL |
+| `GPIO25` | DHT11 DATA |
+| `GPIO26` | Buzzer `+` |
+| `GPIO27` | 220 Ω → 2N2222 base (optional IR driver) |
+
+## Per-part quick reference
+
+<Tabs items={["VL53L0X", "DHT11", "Buzzer", "IR blaster"]}>
+
+<Tab value="VL53L0X">
+
+| VL53L0X pin | → ESP32 |
+|-------------|---------|
+| `VIN` / `VCC` (**+**) | `3V3` |
+| `GND` (**−**) | `GND` |
+| `SDA` | `GPIO21` |
+| `SCL` | `GPIO22` |
+
+I²C device — no tricky polarity, just match the four pins.
+
+</Tab>
+
+<Tab value="DHT11">
+
+| DHT11 pin | → ESP32 |
+|-----------|---------|
+| `VCC` (**+**) | `3V3` |
+| `DATA` / `OUT` | `GPIO25` |
+| `GND` (**−**) | `GND` |
+
+A **bare 4-pin** sensor also needs a **10 kΩ pull-up** between VCC and DATA. A
+3-pin module already has it built in. Details on the [wiring page](/docs/hardware/wiring#dht11).
+
+</Tab>
+
+<Tab value="Buzzer">
+
+| Buzzer pin | → ESP32 |
+|------------|---------|
+| **+** (long leg / `+` mark) | `GPIO26` |
+| **−** (short leg) | `GND` |
+
+Use a **passive** piezo. A bare 2-pin disc isn't polarized — either leg works.
+
+</Tab>
+
+<Tab value="IR blaster">
+
+| Part | → ESP32 |
+|------|---------|
+| 2N2222 base | `GPIO27` via a 220 Ω resistor |
+| 2N2222 emitter | `GND` |
+| 2N2222 collector | IR LED cathode side (via current-limit resistor) |
+| IR LED anode (**+**) | `5V` |
+
+Optional. Full schematic on the [IR blaster page](/docs/hardware/ir-blaster).
+
+</Tab>
+
+</Tabs>

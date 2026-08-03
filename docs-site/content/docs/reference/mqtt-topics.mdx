@@ -1,0 +1,66 @@
+---
+title: MQTT topics
+description: Every topic the bar node publishes and subscribes to, with payloads.
+icon: Radio
+---
+
+All device traffic is namespaced under `pullup/<DEVICE_ID>/…`, where `DEVICE_ID`
+is the value shared between the [firmware config](/docs/firmware) and the
+[web env](/docs/console/configuration).
+
+## Published by the device
+
+| Topic | Retained | What it carries |
+|-------|:--------:|-----------------|
+| `pullup/<DEVICE_ID>/telemetry` | no | Raw distance, continuously — drives the live gauge and calibration. |
+| `pullup/<DEVICE_ID>/event` | no | `session_start`, `rep`, and `session_end` events. |
+| `pullup/<DEVICE_ID>/env` | no | Temperature + humidity every 60 s (sampled only when idle). |
+| `pullup/<DEVICE_ID>/status` | **yes** | Online flag, firmware version, WiFi RSSI, uptime, free heap, IP — every ~15 s. |
+| `pullup/<DEVICE_ID>/ir/ack` | no | Ack for each IR frame sent. |
+| `pullup/<DEVICE_ID>/ota/status` | no | OTA download/flash progress. |
+
+<Callout type="info" title="Offline detection">
+The `status` topic is retained, and offline is delivered by the MQTT **Last-Will**
+if the device drops — that's what flips the Device panel to offline.
+</Callout>
+
+## Subscribed by the device
+
+| Topic | Retained | What it does |
+|-------|:--------:|--------------|
+| `pullup/<DEVICE_ID>/config` | **yes** | Detection thresholds + buzzer toggles. Changes from the **Settings** page arrive instantly — no reflashing. |
+| `pullup/<DEVICE_ID>/ir/cmd` | no | An IR frame to transmit (see below). |
+| `pullup/<DEVICE_ID>/ota` | no | An OTA image URL + MD5 to download and flash. |
+
+## IR command payloads [#ir]
+
+The device transmits whatever it receives on `ir/cmd`. Two shapes are supported:
+
+**A Panasonic AC state frame** — a full climate state:
+
+```json
+{ "t": "climate", "power": true, "mode": "cool", "temp": 24, "fan": "auto", "swing": "auto" }
+```
+
+**A generic protocol code** — for buttons on any remote:
+
+```json
+{ "t": "button", "protocol": "NEC", "code": "00CF8976", "bits": 32 }
+```
+
+Commands are queued and transmitted right away in **any** state, so the fan/AC
+responds instantly even while the bar sensor is active — an IR burst only pauses
+distance sampling for a few tens of milliseconds. The device acks each send on
+`ir/ack`.
+
+<Callout type="info">
+Devices and buttons are managed entirely on the web **Remote** page — nothing is
+hard-coded in firmware. That's also what the
+[voice integrations](/docs/integrations) ultimately drive.
+</Callout>
+
+## OTA payload
+
+`ota` carries the firmware image URL and its MD5. The device downloads over
+HTTP(S), verifies the MD5, flashes the idle partition, and reboots — reporting
+progress on `ota/status`. See [OTA updates](/docs/firmware/ota).

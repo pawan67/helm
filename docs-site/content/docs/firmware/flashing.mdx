@@ -1,0 +1,75 @@
+---
+title: Flashing
+description: Upload the sketch over USB and confirm the node connects.
+icon: Usb
+---
+
+With the [libraries installed and `config.h` filled in](/docs/firmware),
+flashing is a few clicks.
+
+<Steps>
+
+<Step>
+
+### Select your board and port
+
+Open `firmware/helm/helm.ino` in the Arduino IDE. Pick your ESP32 board under
+**Tools → Board**, and the serial port under **Tools → Port**.
+
+</Step>
+
+<Step>
+
+### Set a two-slot partition scheme
+
+Under **Tools → Partition Scheme**, choose one with two app slots (the default
+*"Default 4MB with spiffs"* has `ota_0`/`ota_1`). This is what makes
+[OTA updates](/docs/firmware/ota) work later.
+
+</Step>
+
+<Step>
+
+### Upload
+
+Hit **Upload**. If the board doesn't enter flashing mode on its own, hold the
+**BOOT** button while it connects.
+
+</Step>
+
+<Step>
+
+### Watch the Serial Monitor
+
+Open the **Serial Monitor at 115200 baud**. You should see:
+
+```text
+HELM bar-node firmware …
+[vl53l0x] ready
+[wifi] connected, ip=…
+[mqtt] connected
+```
+
+</Step>
+
+</Steps>
+
+## If something's off
+
+<Callout type="warn" title="[vl53l0x] NOT FOUND — check wiring!">
+The I²C sensor isn't responding. Recheck SDA=`GPIO21`, SCL=`GPIO22`, VIN=`3V3`,
+and GND against the [pin mapping](/docs/hardware/pin-mapping).
+</Callout>
+
+- **No WiFi** → recheck `WIFI_SSID` / `WIFI_PASSWORD` in `config.h`. The ESP32
+  only joins **2.4 GHz** networks.
+- **Connects to WiFi but not MQTT** → confirm `MQTT_HOST`/`MQTT_PORT` are
+  reachable from where the device lives, and that `MQTT_USER`/`MQTT_PASS` match
+  the broker's `device` user.
+- **Connects but the console shows nothing** → make sure `DEVICE_ID` in `config.h`
+  matches the web app's `DEVICE_ID` env var.
+
+## After the first flash
+
+You never need the USB cable again — push future builds wirelessly from the
+console. See [OTA updates](/docs/firmware/ota).

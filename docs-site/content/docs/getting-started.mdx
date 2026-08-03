@@ -1,0 +1,82 @@
+---
+title: Getting started
+description: The end-to-end path from a bag of parts to voice-controlling your AC.
+icon: Rocket
+---
+
+This is the whole journey in order. Each step links to the section with the full
+detail — follow them top to bottom the first time.
+
+<Steps>
+
+<Step>
+
+### Gather the parts
+
+You need an ESP32 dev board, a VL53L0X distance sensor, a DHT11, a passive buzzer,
+a breadboard, jumper wires, and a couple of resistors. The IR blaster parts are
+optional. See the full **[bill of materials](/docs/hardware#parts)**.
+
+</Step>
+
+<Step>
+
+### Wire the bar node
+
+Connect each part to the ESP32 one at a time, checking polarity as you go. The
+**[pin mapping](/docs/hardware/pin-mapping)** is the single source of truth; the
+**[wiring guide](/docs/hardware/wiring)** walks it component by component.
+
+</Step>
+
+<Step>
+
+### Flash the firmware
+
+Install the Arduino libraries, copy `config.example.h` → `config.h` with your
+WiFi + MQTT details, and upload the sketch. Full steps in
+**[Firmware → Flashing](/docs/firmware/flashing)**.
+
+</Step>
+
+<Step>
+
+### Run the console
+
+Bring up Postgres, Mosquitto, and the Next.js app — locally with
+**[Local development](/docs/console/local-development)**, or in production with
+**[Deployment](/docs/console/deployment)**. No hardware yet? The
+[mock device](/docs/console/local-development#no-hardware-mock-the-device)
+simulates the bar node.
+
+</Step>
+
+<Step>
+
+### Calibrate
+
+Open the console's **Settings** page and set your rep line and presence range
+against the live distance reading. See **[Calibration](/docs/firmware/calibration)**.
+Changes push to the device instantly over MQTT.
+
+</Step>
+
+<Step>
+
+### (Optional) Add voice control
+
+Wire the IR blaster, then link Home Assistant to Google so you can say *"Hey
+Google, turn on the AC."* Start at **[Integrations](/docs/integrations)**.
+
+</Step>
+
+</Steps>
+
+## Prerequisites at a glance
+
+<Cards>
+  <Card title="For the hardware" description="ESP32 + VL53L0X + DHT11 + buzzer, a breadboard, and a USB cable. A multimeter helps but isn't required." />
+  <Card title="For the software" description="Node 22, pnpm, and Docker on the machine that will host the console." />
+  <Card title="For flashing" description="The Arduino IDE with the ESP32 board package installed." />
+  <Card title="For voice control" description="A public HTTPS host for Home Assistant and a Google account." />
+</Cards>

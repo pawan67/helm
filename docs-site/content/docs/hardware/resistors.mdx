@@ -1,0 +1,63 @@
+---
+title: Reading resistors
+description: Turn the color bands into a value, and find the exact resistors this build needs.
+icon: Rainbow
+---
+
+Your resistors have **4 colored bands**. Here's how to turn the colors into a
+value so you pick the right ones.
+
+## Step A — point it the right way
+
+One band is **gold** (or silver) and sits slightly apart from the other three.
+**Turn the resistor so that gold/silver band is on the RIGHT.** Now read the bands
+**left → right**.
+
+```text
+ ┌───────────────────────────┐
+ │  ▓   ▓   ▓          ▓      │   ← gold on the right
+ └───────────────────────────┘
+    1st 2nd  ×          tolerance
+   digit digit multiplier  (gold = ±5%)
+```
+
+## Step B — the color chart
+
+| Color  | Digit (bands 1 & 2) | Multiplier (band 3) |
+|--------|:---:|:---|
+| Black  | 0 | × 1 |
+| Brown  | 1 | × 10 |
+| Red    | 2 | × 100 |
+| Orange | 3 | × 1,000 (k) |
+| Yellow | 4 | × 10,000 |
+| Green  | 5 | × 100,000 |
+| Blue   | 6 | × 1,000,000 (M) |
+| Violet | 7 | — |
+| Grey   | 8 | — |
+| White  | 9 | — |
+| **Gold** | — | tolerance **±5%** (band 4) |
+| **Silver** | — | tolerance ±10% (band 4) |
+
+**Value = (digit1 digit2) × multiplier.**
+Example — Brown, Black, Red: `1` `0` × `100` = **1,000 Ω = 1 kΩ**.
+
+## Step C — the resistors this build needs
+
+Look through your bag and match these color patterns:
+
+| You need | Bands (left → right) | Reads as | Used for |
+|----------|----------------------|----------|----------|
+| **10 kΩ** | 🟤 Brown, ⚫ Black, 🟠 Orange, 🟡 Gold | 1,0 × 1k = 10,000 | DHT11 pull-up |
+| **220 Ω** | 🔴 Red, 🔴 Red, 🟤 Brown, 🟡 Gold | 2,2 × 10 = 220 | IR transistor base (optional) |
+| **47 Ω** | 🟡 Yellow, 🟣 Violet, ⚫ Black, 🟡 Gold | 4,7 × 1 = 47 | IR LED limit (optional) |
+
+Close alternatives for the IR LED resistor if you don't have 47 Ω:
+
+- **22 Ω** = Red, Red, Black, Gold
+- **33 Ω** = Orange, Orange, Black, Gold
+
+<Callout type="info" title="Not sure? Measure it.">
+Set a multimeter to Ω (ohms) and touch one probe to each leg (resistors have no
+polarity — either way is fine). It reads the value directly. This is the foolproof
+method if the colors are hard to tell apart.
+</Callout>

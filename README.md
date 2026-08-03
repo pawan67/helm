@@ -61,7 +61,15 @@ web/                 Next.js 16 app (App Router, TS, Chakra UI v3, Drizzle)
 firmware/helm/       ESP32 Arduino sketch + config template + wiring guide
 mosquitto/           broker config
 docker-compose.yml   web + Postgres + Mosquitto
+docs-site/           Fumadocs documentation site (hardware, firmware, console, integrations)
 ```
+
+## Documentation
+
+A full build & setup guide — hardware and pin mapping, flashing, the console, and
+Google Home voice control — lives in [`docs-site/`](docs-site/README.md), a
+[Fumadocs](https://fumadocs.dev) site. Run it with `cd docs-site && pnpm install &&
+pnpm dev`.
 
 ## Local development
 

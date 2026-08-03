@@ -1,0 +1,61 @@
+---
+title: Over-the-air updates
+description: Push new firmware from the console — no USB cable.
+icon: RadioTower
+---
+
+After the first USB flash you can update the firmware wirelessly from the web
+console. The device downloads the image over HTTP(S), verifies its MD5, flashes
+the idle OTA partition, and reboots into it.
+
+<Steps>
+
+<Step>
+
+### Export a compiled binary
+
+In the Arduino IDE: **Sketch → Export Compiled Binary**. This writes
+`helm.ino.bin` next to the sketch (under `build/…/`).
+
+</Step>
+
+<Step>
+
+### Upload it in the console
+
+Open **System → Device**, upload that `.bin`, and hit **Push**.
+
+</Step>
+
+<Step>
+
+### Watch it flash
+
+The console publishes the image URL + MD5 on the device's OTA topic. The device
+downloads it, verifies the MD5, flashes the idle partition, and reboots. Progress
+streams back to the Device panel; on reboot the new version shows under
+**Firmware**.
+
+</Step>
+
+</Steps>
+
+## Requirements
+
+- A partition scheme with **two app slots**. The default *"Default 4MB with
+  spiffs"* has `ota_0`/`ota_1`, so OTA works out of the box. Set it under
+  **Tools → Partition Scheme** when flashing.
+- **No extra libraries** — OTA uses `HTTPClient`, `Update`, and `WiFiClientSecure`
+  from the ESP32 core.
+
+<Callout type="info" title="Can the device reach the console?">
+The device downloads the image from the console's origin. If the device can't
+reach that URL (e.g. the browser is on a different network), set the `OTA_BASE_URL`
+env var to a host the device *can* reach — see
+[Console → Configuration](/docs/console/configuration).
+</Callout>
+
+<Callout type="warn">
+A bad or interrupted download aborts cleanly and keeps the running firmware; the
+error surfaces on the Device panel. You won't brick the node from a failed OTA.
+</Callout>

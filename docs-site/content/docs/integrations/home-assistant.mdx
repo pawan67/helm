@@ -1,0 +1,74 @@
+---
+title: Home Assistant setup
+description: The google_assistant config block and which HELM entities to expose.
+icon: SlidersHorizontal
+---
+
+This is **Part B** of the [Google Home guide](/docs/integrations/google-home) —
+the Home Assistant side. HELM already publishes the AC and fan to HA over MQTT
+discovery; here you expose them to Google.
+
+<Callout type="info" title="This deploy runs HA in Docker, no add-ons">
+On this deploy HA runs as a Docker container on Dokploy, so there are **no
+add-ons** (no File editor / Studio Code Server). `/config` is bind-mounted from
+`/opt/homeassistant` on the VPS, and `/config/configuration.yaml` is the live
+file. Edit it over SSH (or Dokploy's container terminal), and drop
+`SERVICE_ACCOUNT.json` into `/opt/homeassistant/`.
+</Callout>
+
+## The config block
+
+Add this to `configuration.yaml`:
+
+```yaml title="configuration.yaml"
+google_assistant:
+  project_id: helm-home-28739                     # from Google Home guide, Part A step 1
+  service_account: !include SERVICE_ACCOUNT.json  # the JSON key from Part A step 4
+  report_state: true                              # pushes state changes back to Google
+
+  # Only expose what you want Google to control. These IDs come from HELM's MQTT
+  # discovery — confirm them under Developer Tools → States (climate. / fan.):
+  entity_config:
+    climate.helm_bar_node_panasonic_ac:
+      name: AC
+      room: Bedroom
+    fan.helm_bar_node_atomberg_fan:
+      name: Fan
+      room: Bedroom
+```
+
+### Prefer to inline the key?
+
+Drop the `!include` line and paste the two fields from the JSON instead:
+
+```yaml title="configuration.yaml"
+  service_account:
+    client_email: xxxxx@YOUR_PROJECT.iam.gserviceaccount.com
+    private_key: >
+      -----BEGIN PRIVATE KEY-----
+      ...the whole private_key value from the JSON, newlines kept...
+      -----END PRIVATE KEY-----
+```
+
+## Notes
+
+- **Confirm the entity IDs.** In HA go to **Developer Tools → States** and search
+  `climate.` and `fan.`. On this deploy they are
+  `climate.helm_bar_node_panasonic_ac` and `fan.helm_bar_node_atomberg_fan` (HA
+  derives them from the MQTT device name).
+- **`name:` is what you say to Google.** "AC" and "Fan" are easy; or use "Bedroom
+  AC".
+- **Leftover buttons** (Boost/Sleep/Timer/LED, `button.helm_bar_node_atomberg_fan_*`)
+  can also be exposed under `entity_config`, but buttons map to Google "scenes"
+  (`activate` only) — a `fan` + `climate` is the better voice surface.
+
+## Validate before restarting
+
+Inside the container:
+
+```bash
+docker exec <ha-container> python -m homeassistant --script check_config -c /config
+```
+
+Then restart the container. Once it's back, finish with **Part C** (link it on
+your phone) in the [Google Home guide](/docs/integrations/google-home#part-c--link-it-on-your-phone).

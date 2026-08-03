@@ -1,0 +1,47 @@
+---
+title: Architecture & data flow
+description: How data moves from the bar to the browser and back.
+icon: Network
+---
+
+A quick map of what runs where, for when you're debugging or extending HELM.
+
+## The flow
+
+```text
+ESP32 bar node   ──MQTT──▶  Mosquitto  ──sub──▶  Next.js server  ──SSE──▶  Browser
+ VL53L0X (reps)             (broker)             (persists +               (live UI)
+ DHT11 (climate)                                  relays)  ──▶  Postgres
+ buzzer + IR                ◀──────────  config / IR / OTA  ◀──────────────
+```
+
+- **On the device**, the ESP32 runs the detection state machine locally and also
+  streams raw distance, temperature, and humidity.
+- **On the server**, Next.js subscribes to MQTT, persists finished sessions and
+  climate readings to Postgres, and relays live data to the browser over
+  Server-Sent Events.
+- **Back down**, threshold/buzzer config, IR commands, and OTA images are
+  published to the device over MQTT — no reflashing.
+
+## One detection algorithm, two homes
+
+The rep/hang detection logic lives in **two mirrored places**:
+
+- `web/src/lib/detection.ts` — the reference implementation, with unit tests.
+- `firmware/helm/helm.ino` — the on-device copy.
+
+They implement the same state machine, so the TypeScript unit tests validate the
+on-device algorithm too. If you change one, change the other and keep the tests
+green (`pnpm test`).
+
+## Why the device detects locally
+
+The ESP32 counts reps itself rather than shipping raw distance for the server to
+interpret. That keeps the workout screen responsive and the buzzer instant even if
+the network hiccups — the raw stream is only for the live gauge and calibration.
+
+## See also
+
+<Cards>
+  <Card title="MQTT topics" href="/docs/reference/mqtt-topics" description="Every topic the device publishes and subscribes to, with payloads." />
+</Cards>

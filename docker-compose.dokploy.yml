@@ -82,6 +82,18 @@ services:
     networks:
       - dokploy-network
 
+  docs:
+    # Fumadocs documentation site. Fully static/self-contained — no env vars, no
+    # DB, no MQTT. Give it its own Domain in Dokploy (e.g. docs.pawan67.dev)
+    # pointing at this service's port 3000.
+    build:
+      context: ./docs-site
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
+
 networks:
   # Shared Dokploy overlay network. Lets `web` reach your separate Postgres app
   # and lets Dokploy's Traefik route your Domain to `web`. Dokploy creates it.

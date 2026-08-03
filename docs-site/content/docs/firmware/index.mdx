@@ -1,0 +1,87 @@
+---
+title: Setup & libraries
+description: Install the ESP32 board package, the Arduino libraries, and your config.h.
+icon: Wrench
+---
+
+The firmware is an Arduino sketch at `firmware/helm/helm.ino`. It reads the
+VL53L0X to detect reps and hang time, reads the DHT11 for climate, drives the
+buzzer, optionally blasts IR, and streams everything to the server over MQTT.
+
+<Callout type="info">
+The detection logic mirrors `web/src/lib/detection.ts` **exactly**, so the
+TypeScript unit tests also validate the on-device algorithm.
+</Callout>
+
+## 1. Install the ESP32 board package
+
+In the Arduino IDE: **Boards Manager → search "esp32" by Espressif → install
+(2.0.2+)**.
+
+## 2. Install the libraries
+
+From the Library Manager:
+
+- **Adafruit VL53L0X**
+- **PubSubClient** (Nick O'Leary)
+- **ArduinoJson** (v7.x)
+- **DHT sensor library** (Adafruit) + **Adafruit Unified Sensor**
+- **IRremoteESP8266** (crankyoldgit — works on ESP32; drives the IR blaster)
+
+<Callout type="info">
+OTA needs **no** extra libraries — it uses `HTTPClient`, `Update`, and
+`WiFiClientSecure` from the ESP32 core.
+</Callout>
+
+## 3. Create your config.h
+
+In `firmware/helm/`, copy `config.example.h` → `config.h` and fill in your
+details. `config.h` is gitignored, so your secrets never get committed.
+
+```c title="firmware/helm/config.h"
+#define WIFI_SSID      "your-wifi"
+#define WIFI_PASSWORD  "your-wifi-password"
+
+#define MQTT_HOST      "your-broker-host"   // e.g. the Dokploy host / LAN IP
+#define MQTT_PORT      1883
+#define MQTT_USER      "device"             // the "device" broker user
+#define MQTT_PASS      "your-device-pass"
+
+#define DEVICE_ID      "bar-node-1"         // must match the web app's DEVICE_ID
+#define DEVICE_KEY     "shared-secret"      // must match the web app's DEVICE_KEY
+```
+
+<Callout type="warn">
+`DEVICE_ID` and `DEVICE_KEY` **must match** the web app's environment variables,
+and `MQTT_USER`/`MQTT_PASS` must match the broker's `device` user. See
+[Console → Configuration](/docs/console/configuration).
+</Callout>
+
+## 4. What it publishes
+
+Once running, the bar node talks to the server entirely over MQTT:
+
+- **Live distance** streams continuously (for the gauge + calibration).
+- **`session_start`, `rep`, `session_end`** events drive the workout screen and
+  history.
+- **Temperature + humidity** every 60 s (sampled only when idle, so a DHT read
+  never stalls a rep).
+- **Retained status** every ~15 s — online flag, firmware version, WiFi RSSI,
+  uptime, free heap, IP — which drives the **Device** health panel. Offline is
+  delivered by the MQTT Last-Will if the device drops.
+
+And it subscribes for control:
+
+- **Config** (thresholds, buzzer toggles) — changes from the web **Settings** page
+  arrive instantly, **no reflashing**.
+- **IR commands** — transmitted right away in any state.
+- **OTA** — over-the-air firmware images.
+
+The full topic list is in [Reference → MQTT topics](/docs/reference/mqtt-topics).
+
+## Next
+
+<Cards>
+  <Card title="Flashing" href="/docs/firmware/flashing" description="Upload the sketch and watch it connect." />
+  <Card title="Calibration" href="/docs/firmware/calibration" description="Set your rep line and presence range." />
+</Cards>

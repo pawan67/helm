@@ -1,0 +1,148 @@
+---
+title: Connect Google Home
+description: Link Home Assistant to Google Assistant with the free Cloud-to-cloud integration.
+icon: House
+---
+
+This is the full, free path to *"Hey Google, turn on the AC."* It's a one-time
+setup in the Google consoles plus one config block in Home Assistant.
+
+<Callout type="warn" title="Use Cloud-to-cloud, not Matter">
+Google retired the old "Actions on Google → Smart Home" console. The free
+integration now lives in the **Google Home Developer Console**, under
+**Cloud-to-cloud**. Do **not** use **Matter** — it demands CSA certification you
+don't need. If you hit a checklist saying *your device must be certified by the
+CSA*, you're in the Matter section; back out and open **Cloud-to-cloud**.
+</Callout>
+
+Google's consoles change their wording often. If a button name here doesn't match,
+the source of truth is the official HA doc:
+[home-assistant.io/integrations/google_assistant](https://www.home-assistant.io/integrations/google_assistant/).
+
+## Part A — Google side
+
+<Steps>
+
+<Step>
+
+### Create the project
+
+Go to [console.home.google.com](https://console.home.google.com/) → **Create a
+project** → name it e.g. `Helm Home` → **Create**.
+
+Copy the **Project ID** (⚙ **Project settings**, or read it from the URL). It
+looks like `helm-home-1a2b3`. You'll need it in Home Assistant.
+
+</Step>
+
+<Step>
+
+### Add the Cloud-to-cloud integration
+
+Left nav → expand **Cloud-to-cloud** → **Develop** → **Add integration** (step
+through **Next: Develop → Next: Configure**).
+
+- **Integration name**: e.g. `Helm`.
+- **Select device types**: tick **Air conditioner** and **Fan**. This screen is
+  informational — the real device list comes from HA.
+- Upload a **144×144 px** PNG app icon (any square logo).
+
+</Step>
+
+<Step>
+
+### Account linking (OAuth) + fulfillment URL
+
+On the same integration form:
+
+| Field | Value |
+|-------|-------|
+| **OAuth Client ID** | `https://oauth-redirect.googleusercontent.com/r/YOUR_PROJECT_ID` |
+| **Client secret** | any random string (HA doesn't check it) |
+| **Authorization URL** | `https://home.pawan67.dev/auth/authorize` |
+| **Token URL** | `https://home.pawan67.dev/auth/token` |
+| **Cloud fulfillment URL** | `https://home.pawan67.dev/api/google_assistant` |
+| **Scopes** | add `email` and `name` |
+
+Leave "use basic auth header" unchecked, then **Save**.
+
+<Callout type="warn" title="The Client ID must be that exact URL">
+The OAuth Client ID **must** be
+`https://oauth-redirect.googleusercontent.com/r/YOUR_PROJECT_ID`
+(e.g. `.../r/helm-home-28739`). HA validates it as an IndieAuth URL whose host
+must match Google's redirect URI — a plain string like `helm-google` fails with
+**"client invalid"** during phone linking.
+</Callout>
+
+</Step>
+
+<Step>
+
+### Enable HomeGraph + make a service-account key
+
+Open [console.cloud.google.com](https://console.cloud.google.com/) and select the
+**same project**.
+
+1. **APIs & Services → Library** → search **HomeGraph API** → **Enable**.
+2. **APIs & Services → Credentials → Create credentials → Service account** →
+   name it → grant the **Service Account Token Creator** role → **Done**.
+3. Open the service account → **Keys → Add key → Create new key → JSON**. Rename
+   the downloaded file `SERVICE_ACCOUNT.json` and drop it in HA's `/config/`
+   folder.
+
+</Step>
+
+</Steps>
+
+## Part B — Home Assistant config
+
+Add the `google_assistant:` block to HA's `configuration.yaml`, using the Project
+ID from Part A and the service-account key.
+
+<Cards>
+  <Card title="Home Assistant setup" href="/docs/integrations/home-assistant" description="The exact YAML block, entity config, and how to edit it on this Docker deploy." />
+</Cards>
+
+## Part C — Link it on your phone
+
+<Steps>
+
+<Step>
+Open the **Google Home** app → **+** → **Set up device** → **Works with Google**.
+</Step>
+
+<Step>
+Search for **`[test] Helm Home`** (your project name, prefixed `[test]` while the
+integration is unpublished) → tap it.
+</Step>
+
+<Step>
+Log in to Home Assistant when prompted → authorize.
+</Step>
+
+<Step>
+Your **AC** and **Fan** appear. Assign them a room if asked.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+You do **not** need to publish or certify the integration — leaving it in **test
+mode** works for your own account indefinitely.
+</Callout>
+
+Now try:
+
+- *"Hey Google, turn on the AC."*
+- *"Hey Google, set the AC to 24."*
+- *"Hey Google, turn on the fan."* / *"set the fan to speed 3."*
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Stuck on a *"device must be certified by the CSA"* checklist | You opened **Matter**. Back out and use **Cloud-to-cloud** (Part A). |
+| **"Couldn't reach Helm Home"** | The fulfillment URL is wrong, or HA isn't reachable at `https://home.pawan67.dev/api/google_assistant`. Test it's public. |
+| Account linking fails / login loops | Recheck the **Authorization URL** (`/auth/authorize`) and **Token URL** (`/auth/token`) point at your HA host over HTTPS, with no self-signed cert. |
+| Devices don't sync | Say *"Hey Google, sync my devices"*, or re-link the account. |
+| State looks stale | Ensure `report_state: true` and the HomeGraph API is enabled. For the IR fan, on/off is a toggle so it can drift — set a speed to resync. |

@@ -1,0 +1,44 @@
+---
+title: Configuration
+description: Every environment variable the console reads, and what it controls.
+icon: Settings2
+---
+
+The console is configured entirely through environment variables (`web/.env`
+locally, or the Dokploy Compose env in production).
+
+## Environment variables
+
+| Var | Where | Purpose |
+|-----|-------|---------|
+| `APP_PASSWORD` | web | Login password |
+| `SESSION_SECRET` | web | Signs the session cookie (`openssl rand -hex 32`) |
+| `DATABASE_URL` | web | Postgres connection (set by Compose) |
+| `MQTT_URL` / `MQTT_USER` / `MQTT_PASS` | web | Broker URL + the `server` credentials |
+| `DEVICE_ID` | web + firmware | Which node/device (the MQTT topic namespace) |
+| `DEVICE_KEY` | web + firmware | Shared secret included in every device payload |
+| `APP_TIMEZONE` | web | Local day for streaks/goals (e.g. `America/New_York`) |
+| `OTA_BASE_URL` | web | *(optional)* URL the device downloads firmware from during an OTA push |
+
+<Callout type="warn" title="These must match the firmware">
+`DEVICE_ID` and `DEVICE_KEY` have to be identical in the web env and in the
+firmware's `config.h`. The MQTT `device` user/password in `config.h` must match
+the broker's `device` user, while the web app authenticates as the `server` user.
+</Callout>
+
+## About `OTA_BASE_URL`
+
+During an [OTA push](/docs/firmware/ota) the device downloads the firmware image
+from a URL the server hands it.
+
+- **Unset** — the URL is derived from the browser's origin. Fine when the device
+  can reach the same host you're browsing from.
+- **Set** — point it at a host the *device* can reach (e.g. the app's LAN IP) when
+  the browser and device are on different networks.
+
+## Deriving the entity IDs
+
+Home Assistant derives entity IDs from HELM's MQTT device name. On this deploy
+they are `climate.helm_bar_node_panasonic_ac` and `fan.helm_bar_node_atomberg_fan`.
+Confirm yours under **Developer Tools → States** — you'll need them for the
+[Home Assistant config](/docs/integrations/home-assistant).

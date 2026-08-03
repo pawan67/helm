@@ -1,0 +1,58 @@
+---
+title: Parts & overview
+description: Everything the bar node is made of, and what each part does.
+icon: PackageOpen
+---
+
+The bar node is a breadboard build around an ESP32. Only five things are truly
+required; the IR blaster is a bonus you can add later.
+
+<Callout type="warn">
+Always unplug the ESP32 from USB while you wire. Plug power in only after you've
+double-checked a connection — a swapped `+`/`GND` can kill a part.
+</Callout>
+
+## Bill of materials [#parts]
+
+| # | Part | What it does | Needed? |
+|---|------|--------------|---------|
+| 1 | ESP32 dev board (DevKitC / WROOM) | The brain | ✅ required |
+| 2 | VL53L0X ToF distance sensor | Detects reps / hang | ✅ required |
+| 3 | DHT11 temp/humidity sensor | Room climate | ✅ required |
+| 4 | **Passive** piezo buzzer | Chirps on reps | ✅ required |
+| 5 | IR LED + 2N2222 transistor + 470 µF cap | Controls AC / fan / TV | ⭕ optional |
+| — | Resistors: **10 kΩ**, **220 Ω**, **~47 Ω** | see [Resistors](/docs/hardware/resistors) | ✅ / ⭕ |
+| — | Breadboard + jumper wires | Connections | ✅ |
+
+<Callout type="info" title="Passive, not active buzzer">
+The firmware plays tones with `tone()`. A **passive** piezo has no sticker over
+the hole and clicks (not beeps) if you touch its pins to 3V3. An active buzzer
+just buzzes one note — the wrong part here.
+</Callout>
+
+## What each part is for
+
+- **ESP32** — runs the detection state machine, reads the sensors, drives the
+  buzzer and IR, and talks to the server over WiFi + MQTT.
+- **VL53L0X** — a time-of-flight laser distance sensor on I²C. Mounted above the
+  bar pointing at your head, it turns "how close is your head" into reps and
+  hang time.
+- **DHT11** — a cheap temperature + humidity sensor for the room climate charts.
+- **Passive buzzer** — chirps on each counted rep and plays a jingle on session
+  end (both toggleable in Settings).
+- **IR blaster** (optional) — an IR LED driven by a transistor so it's bright
+  enough to reach your AC / fan / TV across the room.
+
+## Where the sensor goes
+
+Mount the VL53L0X on the wall **10 cm above the bar**, centered, lens pointing
+**outward toward your body** — so your head enters the beam as you pull up. When
+you hang, your head reads far/low in the beam; at the top of a pull-up your head
+rises close to the sensor.
+
+## Next
+
+<Cards>
+  <Card title="Pin mapping" href="/docs/hardware/pin-mapping" description="The complete ESP32 → part pin table." />
+  <Card title="Wiring guide" href="/docs/hardware/wiring" description="Connect each part, one at a time, with polarity notes." />
+</Cards>

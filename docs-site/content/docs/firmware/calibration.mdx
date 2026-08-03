@@ -1,0 +1,63 @@
+---
+title: Calibration
+description: Set your rep line and presence range against the live distance reading.
+icon: SlidersHorizontal
+---
+
+Calibration teaches HELM what counts as a rep and when a session has started.
+It's done entirely from the web console — no reflashing — and changes save
+straight to the device over MQTT.
+
+Open the app's **Settings** page. It shows the **live distance reading** from the
+sensor, which is all you need.
+
+<Steps>
+
+<Step>
+
+### Note your resting distance
+
+Hang from the bar and note the distance the sensor reads. Your head is far from
+the sensor here.
+
+</Step>
+
+<Step>
+
+### Note your top-of-rep distance
+
+Pull up to chin-over-bar and note the distance at the top. Your head is close to
+the sensor now, so this number is smaller.
+
+</Step>
+
+<Step>
+
+### Set the Rep line
+
+Set the **Rep line** just above your chin-over-bar reading — close enough that a
+full rep clearly crosses it, but a partial rep doesn't.
+
+</Step>
+
+<Step>
+
+### Set the Presence range
+
+Set the **Presence range** below your resting-standing distance, so a session only
+starts when you're actually hanging (not just walking past the sensor).
+
+</Step>
+
+</Steps>
+
+<Callout type="info">
+Changes push to the device instantly over the retained config topic. The firmware
+picks them up without a restart — tweak, test a rep, tweak again.
+</Callout>
+
+## Mounting reminder
+
+Calibration assumes the sensor is mounted **10 cm above the bar**, centered, lens
+pointing **outward toward your body**. If reps read erratically, re-check the
+mount before re-calibrating — a tilted sensor is the usual culprit.
