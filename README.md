@@ -142,6 +142,9 @@ Full details in [`firmware/README.md`](firmware/README.md). In short:
 
 1. Wire the VL53L0X (I2C: SDA→GPIO21, SCL→GPIO22, mounted 10 cm above the bar
    center, pointing outward), the DHT11 (DATA→GPIO25), and the buzzer (→GPIO26).
+   Optional IR: an LED driver on GPIO27, and a 3-pin VS1838B receiver
+   (OUT→GPIO14, VCC→3V3, GND→GND) to **learn** codes off your remote from the
+   console's Remote page. See the [hardware docs](https://github.com/pawan67/helm/tree/main/docs-site).
 2. In `firmware/helm/`, copy `config.example.h` → `config.h` and set WiFi + MQTT
    (`device` user) + `DEVICE_ID`/`DEVICE_KEY` (must match the web env).
 3. Install libraries: Adafruit VL53L0X, PubSubClient, ArduinoJson v7, DHT sensor

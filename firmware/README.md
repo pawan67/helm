@@ -25,6 +25,7 @@ guide. The full diagram:
 | Buzzer +       | GPIO26 (passive piezo) |
 | Buzzer −       | GND         |
 | IR LED driver  | GPIO27      |
+| IR receiver OUT| GPIO14 (optional — VS1838B, VCC→3V3, GND→GND) |
 
 ### IR blaster wiring (2N2222 + IR LEDs + 470µF)
 
@@ -41,6 +42,22 @@ GPIO27 ──[220Ω]──► 2N2222 base
 - Size the current-limit resistor for your LED count (e.g. ~22–47Ω for one or two
   LEDs at 5V); a single 470µF cap across the supply smooths the burst draw.
 - Point the IR LEDs at the AC / fan you want to control (line-of-sight).
+
+### IR receiver (optional — learn mode)
+
+To capture a code straight off an existing remote instead of typing hex, add a
+3-pin **VS1838B** / TSOP38238 (looks like a small black LED) on **GPIO14**:
+
+```
+Dome (lens) toward you, legs down, left → right:
+  OUT (left) → GPIO14 | GND (middle) → GND | VCC (right) → 3V3   (NOT 5V)
+```
+
+No resistor/transistor needed. Bare parts have **no labels** — the order is by
+position and **swapping VCC/GND can destroy it**, so confirm against the
+datasheet. The receiver's ISR is only enabled during a console-initiated "learn"
+window (auto-stops ~20s), so it never disturbs rep detection. Drive it from the
+web **Remote** page → Edit → Add → *Learn from remote*.
 
 Mount the VL53L0X on the wall **10 cm above the bar**, centered, pointing
 **outward** toward your body. When you hang, your head reads far/low in the beam;
@@ -86,6 +103,11 @@ at the top of a pull-up your head rises close to the sensor.
   distance sampling for a few tens of ms).
   It acks each send on `pullup/<DEVICE_ID>/ir/ack`. Devices/buttons are managed
   on the web **Remote** page; nothing is hard-coded in firmware.
+- Subscribes to `pullup/<DEVICE_ID>/ir/learn` (`{"on":true,"ms":20000}`) for the
+  optional IR **receiver**: it enables the RX for that window and publishes each
+  decoded frame (`{"protocol":"NEC","code":"20DF10EF","bits":32}`) on
+  `pullup/<DEVICE_ID>/ir/learned`, which the Remote page's *Learn from remote*
+  button uses to auto-fill a captured button.
 - Subscribes to `pullup/<DEVICE_ID>/ota` for **over-the-air firmware updates**
   (see below) and reports progress on `pullup/<DEVICE_ID>/ota/status`.
 

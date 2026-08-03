@@ -17,6 +17,7 @@ is the value shared between the [firmware config](/docs/firmware) and the
 | `pullup/<DEVICE_ID>/env` | no | Temperature + humidity every 60 s (sampled only when idle). |
 | `pullup/<DEVICE_ID>/status` | **yes** | Online flag, firmware version, WiFi RSSI, uptime, free heap, IP — every ~15 s. |
 | `pullup/<DEVICE_ID>/ir/ack` | no | Ack for each IR frame sent. |
+| `pullup/<DEVICE_ID>/ir/learned` | no | A remote frame decoded during learn mode: `{protocol, code, bits}`. |
 | `pullup/<DEVICE_ID>/ota/status` | no | OTA download/flash progress. |
 
 <Callout type="info" title="Offline detection">
@@ -30,6 +31,7 @@ if the device drops — that's what flips the Device panel to offline.
 |-------|:--------:|--------------|
 | `pullup/<DEVICE_ID>/config` | **yes** | Detection thresholds + buzzer toggles. Changes from the **Settings** page arrive instantly — no reflashing. |
 | `pullup/<DEVICE_ID>/ir/cmd` | no | An IR frame to transmit (see below). |
+| `pullup/<DEVICE_ID>/ir/learn` | no | Toggle **learn** capture: `{ "on": true, "ms": 20000 }`. |
 | `pullup/<DEVICE_ID>/ota` | no | An OTA image URL + MD5 to download and flash. |
 
 ## IR command payloads [#ir]
@@ -58,6 +60,23 @@ Devices and buttons are managed entirely on the web **Remote** page — nothing 
 hard-coded in firmware. That's also what the
 [voice integrations](/docs/integrations) ultimately drive.
 </Callout>
+
+## Learn mode [#learn]
+
+With an [IR receiver](/docs/hardware/ir-blaster#receiver) on `GPIO14`, the console
+can **capture** a code off your existing remote instead of you typing hex.
+
+The server publishes `{ "on": true, "ms": 20000 }` on `ir/learn` to open a capture
+window; the device enables its receiver and publishes each decoded frame on
+`ir/learned`:
+
+```json
+{ "protocol": "NEC", "code": "20DF10EF", "bits": 32 }
+```
+
+The **Remote** page's "Learn from remote" button drives this and auto-fills the
+new button's protocol / code / bits. The receiver's interrupt is only live during
+the window (it auto-stops), so it never perturbs rep detection.
 
 ## OTA payload
 

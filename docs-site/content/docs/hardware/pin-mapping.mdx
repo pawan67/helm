@@ -14,14 +14,15 @@ Find these labels printed on the board (both sides are labeled):
 
 | Label on board | Meaning | Use it for |
 |----------------|---------|------------|
-| `3V3` | 3.3 V **power out (+)** | VL53L0X, DHT11 power |
+| `3V3` | 3.3 V **power out (+)** | VL53L0X, DHT11, IR receiver power |
 | `5V` or `VIN` | 5 V **power out (+)** | IR LEDs (optional) |
 | `GND` | Ground **(−)** | every part's `−` |
 | `GPIO21` | I²C data (SDA) | VL53L0X SDA |
 | `GPIO22` | I²C clock (SCL) | VL53L0X SCL |
 | `GPIO25` | Digital | DHT11 DATA |
 | `GPIO26` | Digital | Buzzer `+` |
-| `GPIO27` | Digital | IR driver (optional) |
+| `GPIO27` | Digital | IR LED driver (optional) |
+| `GPIO14` | Digital (input) | IR receiver `OUT` (optional) |
 
 There are **several `GND` pins** — any of them work. Treat `3V3` as your `+` rail
 for the sensors and `GND` as your `−` rail.
@@ -32,18 +33,19 @@ Double-check every connection against this table before powering on.
 
 | ESP32 pin | Connects to |
 |-----------|-------------|
-| `3V3` | VL53L0X VIN, DHT11 VCC |
+| `3V3` | VL53L0X VIN, DHT11 VCC, IR receiver VCC |
 | `5V` / `VIN` | IR LED supply, 470 µF `+` (optional) |
-| `GND` | VL53L0X GND, DHT11 GND, buzzer `−`, transistor emitter, cap `−` |
+| `GND` | VL53L0X GND, DHT11 GND, buzzer `−`, transistor emitter, cap `−`, IR receiver GND |
 | `GPIO21` | VL53L0X SDA |
 | `GPIO22` | VL53L0X SCL |
 | `GPIO25` | DHT11 DATA |
 | `GPIO26` | Buzzer `+` |
 | `GPIO27` | 220 Ω → 2N2222 base (optional IR driver) |
+| `GPIO14` | IR receiver `OUT` (optional, for learn mode) |
 
 ## Per-part quick reference
 
-<Tabs items={["VL53L0X", "DHT11", "Buzzer", "IR blaster"]}>
+<Tabs items={["VL53L0X", "DHT11", "Buzzer", "IR blaster", "IR receiver"]}>
 
 <Tab value="VL53L0X">
 
@@ -92,6 +94,23 @@ Use a **passive** piezo. A bare 2-pin disc isn't polarized — either leg works.
 | IR LED anode (**+**) | `5V` |
 
 Optional. Full schematic on the [IR blaster page](/docs/hardware/ir-blaster).
+
+</Tab>
+
+<Tab value="IR receiver">
+
+A 3-pin **VS1838B** / TSOP38238 (looks like a small black LED). Pins go **by
+position**, not by label — dome facing you, legs down, left → right:
+
+| Leg (left → right) | → ESP32 |
+|--------------------|---------|
+| `OUT` (left) | `GPIO14` |
+| `GND` (**−**, middle) | `GND` |
+| `VCC` (**+**, right) | `3V3` (not 5 V) |
+
+Optional — only needed for **learn mode**. Pinouts vary by brand; **swapping
+VCC/GND can destroy it**, so confirm against your datasheet. Details on the
+[IR blaster page](/docs/hardware/ir-blaster#receiver).
 
 </Tab>
 

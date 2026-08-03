@@ -85,13 +85,21 @@ or the **longer leg = `+`**.
 If yours is a bare 2-pin piezo disc with no `+`, it isn't polarized — either leg
 works.
 
-## IR blaster — optional
+## IR blaster + receiver — optional
 
-The IR blaster has real polarity and needs a transistor. It's covered on its own
-page so you can skip it entirely if you don't want AC/fan/TV control.
+The IR **blaster** (transmit) has real polarity and needs a transistor. The IR
+**receiver** (a 3-pin VS1838B on `GPIO14`) is a separate, simpler add-on that
+lets the console **learn** codes off your existing remote. Both are covered on
+their own page — skip them entirely if you don't want IR control.
+
+<Callout type="warn">
+The bare receiver has **no labels** — its pins go by position (dome toward you,
+legs down: `OUT`, `GND`, `VCC` left → right). Swapping VCC/GND can destroy it.
+</Callout>
 
 <Cards>
   <Card title="IR blaster wiring" href="/docs/hardware/ir-blaster" description="Transistor driver, IR LED, and capacitor — with polarity notes." />
+  <Card title="IR receiver (learn mode)" href="/docs/hardware/ir-blaster#receiver" description="3-pin VS1838B on GPIO14 to capture codes from any remote." />
 </Cards>
 
 ## First power-on checklist

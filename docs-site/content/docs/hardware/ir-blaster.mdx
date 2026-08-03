@@ -1,6 +1,6 @@
 ---
 title: IR blaster (optional)
-description: The transistor-driven IR LED that controls your AC, fan, or TV.
+description: The transistor-driven IR LED that controls your AC, fan, or TV — plus the optional receiver for learning remote codes.
 icon: Radio
 ---
 
@@ -53,6 +53,63 @@ single 470 µF cap across the supply smooths the burst draw.
 
 Point the IR LEDs at the AC / fan / TV you want to control — it needs
 line-of-sight.
+
+## IR receiver — optional (for "learn" mode) [#receiver]
+
+Rather than hunting for hex codes, you can have HELM **learn** a code straight off
+your existing remote. Add a **38 kHz IR receiver** — a 3-pin part (VS1838B, or a
+TSOP38238 module) that looks like a little black LED. It wires to **`GPIO14`** and
+needs **no resistor or transistor** — it's a powered module with a logic output.
+
+<Callout type="warn">
+A bare receiver has **no printed labels** — its pins go **by position**, and
+swapping `VCC`/`GND` can **destroy** the part. Confirm the order against your
+exact part's datasheet before powering on.
+</Callout>
+
+**VS1838B pinout** — hold it with the **rounded (dome / lens) side facing you** and
+the **legs pointing down**, then read left → right:
+
+```text
+   VS1838B — dome toward you, legs down:
+
+     OUT       GND       VCC
+      │         │         │
+   GPIO14      GND       3V3   (3.3 V — NOT 5 V)
+```
+
+- **Left leg = `OUT`** → `GPIO14`
+- **Middle leg = `GND` (−)** → `GND`
+- **Right leg = `VCC` (+)** → `3V3`
+
+If it's wired right, `OUT` idles near 3.3 V and dips low when it sees IR. Point
+the dome at whatever remote you'll press.
+
+### Using learn mode
+
+<Steps>
+
+<Step>
+Flash firmware **v1.7.0+** (adds receiver support) — over USB or [OTA](/docs/firmware/ota).
+</Step>
+
+<Step>
+On the console's **Remote** page, hit **Edit**, then **Add** a button on any
+device — including the **AC** card.
+</Step>
+
+<Step>
+Click **Learn from remote**, point your remote at the bar node, and press the
+button you want (e.g. the AC's **Light**). Protocol, code and bits fill in
+automatically. Name it and **Save**.
+</Step>
+
+</Steps>
+
+The receiver's interrupt is enabled **only during that short learn window** (it
+auto-stops after ~20 s), so it never disturbs rep detection the rest of the time.
+Buttons you add to the **AC** card are also published to Home Assistant, so a
+learned "lights off" works by voice too.
 
 ## What the firmware does with it
 
