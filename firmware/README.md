@@ -78,6 +78,32 @@ at the top of a pull-up your head rises close to the sensor.
 4. Open `helm.ino`, select your ESP32 board + port, and upload.
 5. Open Serial Monitor at **115200 baud** to watch it connect and detect reps.
 
+## Faster: build & flash from the CLI (no IDE)
+
+The Arduino IDE rebuilds everything on every compile and is sluggish. Use
+[`arduino-cli`](https://arduino.github.io/arduino-cli/) instead — it's headless
+and **caches compilation**, so incremental builds take seconds. The
+[`flash.sh`](flash.sh) wrapper does build, USB-flash, and one-command OTA:
+
+```bash
+# one-time: install arduino-cli, then the ESP32 core + all libraries
+curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+firmware/flash.sh setup
+
+# copy the config template and set HELM_URL + HELM_PASSWORD (+ PORT for USB)
+cp firmware/build.env.example firmware/build.env   # gitignored
+
+firmware/flash.sh            # compile + export build/helm.ino.bin
+firmware/flash.sh usb        # compile + flash over USB serial
+firmware/flash.sh ota        # compile + upload to the console + trigger OTA — no browser
+```
+
+`ota` mode replaces the whole *Export Compiled Binary → upload in the web UI →
+Push* dance: it logs in, uploads `build/helm.ino.bin`, and triggers the push via
+the console's API. The `min_spiffs` partition (required for OTA) is baked into the
+default `FQBN`. Close any serial monitor before a USB flash — a held port makes
+the ESP32 "stop responding" mid-write.
+
 ## How it behaves
 
 - Publishes raw distance continuously to `pullup/<DEVICE_ID>/telemetry`
